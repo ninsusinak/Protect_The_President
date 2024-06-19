@@ -39,7 +39,7 @@ Gameplay Overview
 
     bash
 
-    git clone https://github.com/your_username/protect-the-president.git
+    git clone git@github.com:ninsusinak/Protect_The_President.git
 
     Open the project in Godot Engine.
 
