@@ -1,4 +1,4 @@
-## Protect the President
+# Protect the President
 
 Protect the President is a game developed in Godot, inspired by the ancient board game Hnefatafl. In this game, the traditional Hnefatafl setup is reimagined where the king is replaced by a president, selectable from a range of US presidential skins past and present. The defenders take the role of presidential bodyguards, while the attackers portray protestors. The objective for the defenders is to safely escort the president to one or more escape areas on street-level layouts, while the attackers aim to surround and capture the president.
 Gameplay Overview
@@ -17,7 +17,7 @@ Gameplay Overview
         Defenders Win: Successfully escort the president to one of the escape areas.
         Attackers Win: Surround and capture the president before reaching safety.
 
-# Features
+### Features
 
     Customizable President: Choose from a range of US presidential skins, both historical and present-day.
 
@@ -27,13 +27,13 @@ Gameplay Overview
 
     Single Player and Multiplayer Modes: Play against AI opponents or challenge friends in local multiplayer.
 
-# Screenshots
-# Getting Started
-# Prerequisites
+### Screenshots
+### Getting Started
+### Prerequisites
 
     Godot Engine: Ensure you have Godot Engine installed. You can download it from Godot Engine Official Website.
 
-# Running the Game
+### Running the Game
 
     Clone this repository:
 
@@ -46,7 +46,7 @@ Gameplay Overview
     Navigate to the main scene (Main.tscn) and run the scene to start the game.
 
 
-# Contributing
+### Contributing
 
 Contributions are welcome! If you have suggestions, improvements, or bug fixes, feel free to submit a pull request or open an issue.
 License
