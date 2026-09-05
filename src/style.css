@@ -1,0 +1,305 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #1c1c1a;
+  color: #eee;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1 {
+  margin-bottom: 0.1rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #aaa;
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+.card {
+  background: #26261f;
+  border: 1px solid #3a3a30;
+  border-radius: 6px;
+  padding: 1.25rem;
+  max-width: 420px;
+  margin-top: 1.5rem;
+}
+
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #eee;
+  margin-bottom: 1rem;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+input[type="range"] {
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.continue-info {
+  font-size: 0.85rem;
+  color: #9fcf9f;
+  margin: 0.75rem 0 0;
+}
+
+.game-topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.layout {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.board-panel {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.board-panel canvas {
+  border: 2px solid #444;
+  border-radius: 4px;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  touch-action: manipulation;
+}
+
+.level-heading {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d4af37;
+  letter-spacing: 0.02em;
+}
+
+.level-briefing {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #aaa;
+  max-width: 396px;
+}
+
+.active-president {
+  margin: 0;
+  font-weight: 600;
+}
+
+.unit-info {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.side-panel {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.side-panel section {
+  background: #26261f;
+  border: 1px solid #3a3a30;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 0.25rem;
+}
+
+select,
+button {
+  font: inherit;
+  padding: 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: #33332a;
+  color: #eee;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+button {
+  cursor: pointer;
+  background: #d4af37;
+  color: #1c1c1a;
+  font-weight: 600;
+  border: none;
+}
+
+button:hover {
+  background: #e6c14f;
+}
+
+button:disabled {
+  background: #55523f;
+  color: #888;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #33332a;
+  color: #eee;
+  border: 1px solid #555;
+}
+
+button.secondary:hover {
+  background: #3d3d32;
+}
+
+button.small {
+  width: auto;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.tagline {
+  font-style: italic;
+  color: #bbb;
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+#status {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.log-section {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+#log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#log li {
+  border-left: 2px solid #555;
+  padding-left: 0.5rem;
+  color: #ccc;
+}
+
+#log li:last-child {
+  color: #fff;
+  border-left-color: #d4af37;
+}
+
+.legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+.swatch.defender {
+  background: #2a6fdb;
+}
+
+.swatch.brawler {
+  background: #c0392b;
+}
+
+.swatch.chucker {
+  background: #a34fb0;
+}
+
+.swatch.president {
+  background: #d4af37;
+}
+
+.swatch.door {
+  background: #4a3a22;
+  border-radius: 2px;
+}
+
+.swatch.exit {
+  background: #1f4a2f;
+  border-radius: 2px;
+}
+
+.swatch.cover-ring,
+.swatch.overwatch-ring {
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.swatch.cover-ring {
+  border: 2px solid rgba(120, 200, 255, 0.9);
+}
+
+.swatch.overwatch-ring {
+  border: 2px solid #4fd0e0;
+}
+
+@media (max-width: 480px) {
+  #app {
+    padding: 1rem;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+}

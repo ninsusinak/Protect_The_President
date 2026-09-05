@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Save the Idiot-in-Chief</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="title-screen" class="screen">
+        <h1>Save the Idiot-in-Chief</h1>
+        <p class="subtitle">
+          Escort the President to the waiting car, block by block. Protestors pour out of the
+          buildings for as long as it takes — your detail doesn't get reinforcements.
+        </p>
+
+        <div class="card">
+          <label for="title-president-select">President</label>
+          <select id="title-president-select"></select>
+          <p id="title-president-tagline" class="tagline"></p>
+
+          <p id="continue-info" class="continue-info" hidden></p>
+
+          <div class="button-stack">
+            <button id="continue-btn" hidden>Continue</button>
+            <button id="new-game-btn">New Campaign</button>
+            <button id="title-options-btn" class="secondary">Options</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="options-screen" class="screen" hidden>
+        <h1>Options</h1>
+        <div class="card">
+          <label class="checkbox-row">
+            <input type="checkbox" id="sound-toggle" checked />
+            Sound effects
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="music-toggle" checked />
+            Music
+          </label>
+
+          <label for="volume-slider">Volume</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="50" />
+
+          <div class="button-stack">
+            <button id="clear-save-btn" class="secondary">Clear Saved Game</button>
+            <button id="quit-to-title-btn" class="secondary" hidden>Quit to Title</button>
+            <button id="options-back-btn">Back</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="game-screen" class="screen" hidden>
+        <div class="game-topbar">
+          <h1>Save the Idiot-in-Chief</h1>
+          <button id="menu-btn" class="secondary small">Menu</button>
+        </div>
+
+        <div class="layout">
+          <div class="board-panel">
+            <p id="level-heading" class="level-heading"></p>
+            <p id="level-briefing" class="level-briefing"></p>
+            <canvas id="board" width="396" height="660"></canvas>
+          </div>
+
+          <div class="side-panel">
+            <section>
+              <p id="active-president" class="active-president"></p>
+              <p id="active-president-tagline" class="tagline"></p>
+            </section>
+
+            <section class="controls">
+              <p id="unit-info" class="unit-info">Select a Secret Service agent to begin.</p>
+              <div class="action-buttons">
+                <button id="overwatch-btn" class="secondary" disabled>Overwatch</button>
+                <button id="end-turn-btn">End Turn</button>
+              </div>
+            </section>
+
+            <section class="controls">
+              <button id="retry-btn" class="secondary">Retry Level</button>
+            </section>
+
+            <section>
+              <h2 id="status">Your move: choose a Secret Service agent.</h2>
+            </section>
+
+            <section class="log-section">
+              <h2>Situation Report</h2>
+              <ul id="log"></ul>
+            </section>
+
+            <section class="legend">
+              <h2>Legend</h2>
+              <ul>
+                <li><span class="swatch defender"></span> Agent (SS) — shield/spray, ranged, no reinforcements</li>
+                <li><span class="swatch president"></span> The President (autonomous, unarmed)</li>
+                <li><span class="swatch brawler"></span> Protestor (B) — bat, melee only, can grab the President</li>
+                <li><span class="swatch chucker"></span> Protestor (C) — thrown rocks, ranged, can't grab</li>
+                <li><span class="swatch door"></span> Building door — protestors spawn here, endless supply</li>
+                <li><span class="swatch exit"></span> Exit — get the President here to win</li>
+                <li><span class="swatch cover-ring"></span> Cover — next to a wall, harder to hit at range</li>
+                <li><span class="swatch overwatch-ring"></span> Overwatch — fires on the first enemy that moves in range</li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
