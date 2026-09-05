@@ -1,18 +1,24 @@
 import "./style.css";
-import { CELL, boardPixelSize, renderBoard } from "./render";
+import { CELL, boardPixelSize, renderBoard, type TargetHighlight } from "./render";
 import { LEVELS, buildLevel, type Level } from "./game/board";
 import { PRESIDENTS, pickLine, type PresidentProfile } from "./game/presidents";
-import { decideAttackerMove } from "./game/attackerAI";
+import { runAttackerTurn, type CombatEvent } from "./game/attackerAI";
 import { decidePresidentMove } from "./game/presidentAI";
 import {
-  adjacentAttackerCount,
-  allLegalMoves,
-  applyMove,
+  attackableTargets,
   createInitialState,
-  legalMovesFrom,
+  findPieceCoord,
+  hasCover,
+  performAttack,
+  performMove,
+  performOverwatch,
+  piecesInRange,
+  reachableTiles,
+  resetAP,
   spawnAttackers,
 } from "./game/rules";
-import type { Coord, GameState } from "./game/types";
+import { statsFor } from "./game/units";
+import type { Coord, GameState, Piece } from "./game/types";
 import {
   getVolume,
   initAudio,
@@ -48,6 +54,9 @@ const optionsBackBtn = document.getElementById("options-back-btn") as HTMLButton
 const menuBtn = document.getElementById("menu-btn") as HTMLButtonElement;
 const activePresidentEl = document.getElementById("active-president") as HTMLParagraphElement;
 const activePresidentTaglineEl = document.getElementById("active-president-tagline") as HTMLParagraphElement;
+const unitInfoEl = document.getElementById("unit-info") as HTMLParagraphElement;
+const overwatchBtn = document.getElementById("overwatch-btn") as HTMLButtonElement;
+const endTurnBtn = document.getElementById("end-turn-btn") as HTMLButtonElement;
 const retryBtn = document.getElementById("retry-btn") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLHeadingElement;
 const logEl = document.getElementById("log") as HTMLUListElement;
@@ -64,8 +73,10 @@ let levelIndex = 0;
 let level: Level = buildLevel(LEVELS[levelIndex]);
 let state: GameState = createInitialState(level);
 let profile: PresidentProfile = PRESIDENTS[0];
-let selected: Coord | null = null;
-let legalTargets: Coord[] = [];
+let selectedUnitId: number | null = null;
+let reachableCache: Coord[] = [];
+let targetsCache: TargetHighlight[] = [];
+let targetPieces: Array<{ coord: Coord; piece: Piece }> = [];
 let awaitingAI = false;
 let winSequenceToken = 0;
 
@@ -215,6 +226,23 @@ retryBtn.addEventListener("click", () => {
   }
 });
 
+overwatchBtn.addEventListener("click", () => {
+  if (selectedUnitId === null || awaitingAI || state.phase !== "defender-phase" || state.winner) return;
+  uiClick();
+  const ok = performOverwatch(state, selectedUnitId);
+  if (ok) log("An agent holds position on overwatch.");
+  deselect();
+  draw();
+});
+
+endTurnBtn.addEventListener("click", () => {
+  if (awaitingAI || state.winner || state.phase !== "defender-phase") return;
+  uiClick();
+  deselect();
+  draw();
+  runAIPhases();
+});
+
 canvas.addEventListener("click", handleCanvasClick);
 
 // ---- Game flow ----
@@ -229,42 +257,24 @@ function startLevel(index: number) {
   levelIndex = index;
   level = buildLevel(LEVELS[levelIndex]);
   state = createInitialState(level);
-
-  const px = boardPixelSize(state);
-  canvas.width = px.width;
-  canvas.height = px.height;
-
-  selected = null;
-  legalTargets = [];
-  awaitingAI = false;
-
-  levelHeadingEl.textContent = `Level ${levelIndex + 1} of ${LEVELS.length}: ${level.name}`;
-  levelBriefingEl.textContent = level.briefing;
-  activePresidentEl.textContent = `${profile.name} — ${profile.archetype}`;
-  activePresidentTaglineEl.textContent = profile.tagline;
-
-  logEl.innerHTML = "";
-  for (const line of state.log) appendLogLine(line);
-
-  draw();
-  maybeAutoAdvance();
+  setupNewState();
 }
 
-// Restores a mid-level board exactly as saved, rather than rebuilding the
-// level from scratch — used by Continue when a snapshot is available.
 function resumeFromSnapshot(index: number, snapshot: GameState) {
   winSequenceToken++;
   levelIndex = index;
   level = buildLevel(LEVELS[levelIndex]);
   state = snapshot;
+  setupNewState();
+  log("Picking back up right where you left off.");
+}
 
+function setupNewState() {
   const px = boardPixelSize(state);
   canvas.width = px.width;
   canvas.height = px.height;
 
-  selected = null;
-  legalTargets = [];
-  awaitingAI = false;
+  deselect();
 
   levelHeadingEl.textContent = `Level ${levelIndex + 1} of ${LEVELS.length}: ${level.name}`;
   levelBriefingEl.textContent = level.briefing;
@@ -273,23 +283,8 @@ function resumeFromSnapshot(index: number, snapshot: GameState) {
 
   logEl.innerHTML = "";
   for (const line of state.log) appendLogLine(line);
-  log("Picking back up right where you left off.");
 
   draw();
-  maybeAutoAdvance();
-}
-
-// Checkpoints the exact board position whenever it's safe to resume from
-// (the player's turn, nothing mid-air). A loss clears the snapshot instead —
-// there's nothing useful to resume into once the level is over.
-function persistSnapshot() {
-  if (currentScreen !== "game") return;
-  if (state.winner) {
-    saveProgress({ snapshot: null });
-    return;
-  }
-  if (state.phase !== "defender-phase") return;
-  saveProgress({ levelIndex, presidentId: profile.id, snapshot: state });
 }
 
 function appendLogLine(message: string) {
@@ -304,17 +299,61 @@ function log(message: string) {
   appendLogLine(message);
 }
 
+function getPiece(id: number): { piece: Piece; coord: Coord } | null {
+  const coord = findPieceCoord(state, id);
+  if (!coord) return null;
+  return { piece: state.board[coord.row][coord.col]!, coord };
+}
+
+function selectUnit(id: number) {
+  const found = getPiece(id);
+  if (!found) {
+    deselect();
+    return;
+  }
+  selectedUnitId = id;
+  const { piece, coord } = found;
+  reachableCache = piece.ap > 0 ? reachableTiles(state, coord, statsFor(piece.kind).moveRange) : [];
+  const targets = piece.ap > 0 ? attackableTargets(state, piece, coord) : [];
+  targetsCache = targets.map((t) => ({ coord: t.coord, accuracy: t.accuracy }));
+  targetPieces = targets.map((t) => ({ coord: t.coord, piece: t.piece }));
+}
+
+function deselect() {
+  selectedUnitId = null;
+  reachableCache = [];
+  targetsCache = [];
+  targetPieces = [];
+}
+
 function draw() {
-  renderBoard(ctx, state, { selected, legalTargets });
+  renderBoard(ctx, state, { selected: selectedUnitId ? findPieceCoord(state, selectedUnitId) : null, reachableTiles: reachableCache, targets: targetsCache });
   updateStatus();
+  updateUnitInfo();
   updateControls();
   persistSnapshot();
+}
+
+function updateUnitInfo() {
+  const found = selectedUnitId !== null ? getPiece(selectedUnitId) : null;
+  if (!found) {
+    unitInfoEl.textContent = "Select a Secret Service agent to begin.";
+    return;
+  }
+  const coverNote = hasCover(state, found.coord) ? ", in cover" : "";
+  unitInfoEl.textContent = `Agent selected — ${found.piece.ap} AP left${coverNote}.`;
 }
 
 function updateControls() {
   const isFinal = levelIndex === LEVELS.length - 1;
   retryBtn.textContent = state.winner === "defenders" && isFinal ? "Play Again" : "Retry Level";
   menuBtn.disabled = awaitingAI;
+
+  const canAct = state.phase === "defender-phase" && !awaitingAI && !state.winner;
+  endTurnBtn.disabled = !canAct;
+
+  const selected = selectedUnitId !== null ? getPiece(selectedUnitId) : null;
+  overwatchBtn.disabled = !canAct || !selected || selected.piece.ap <= 0;
 }
 
 function updateStatus() {
@@ -333,16 +372,10 @@ function updateStatus() {
     statusEl.textContent = "Standby, situation developing...";
     return;
   }
-  statusEl.textContent = selected
-    ? "Choose a destination for the selected agent."
-    : "Your move: choose a Secret Service agent.";
-}
-
-function defenderHasPlayableMoves(): boolean {
-  return allLegalMoves(state, "defender").some((m) => {
-    const piece = state.board[m.from.row][m.from.col];
-    return piece && !piece.isPresident;
-  });
+  statusEl.textContent =
+    selectedUnitId !== null
+      ? "Move to a highlighted tile, attack a ringed target, or hold on Overwatch."
+      : "Select an agent to act, then End Turn when you're done.";
 }
 
 function handleCanvasClick(ev: MouseEvent) {
@@ -355,59 +388,69 @@ function handleCanvasClick(ev: MouseEvent) {
   const coord: Coord = { row, col };
   const piece = state.board[row]?.[col];
 
-  if (!selected) {
-    if (piece && piece.team === "defender" && !piece.isPresident) {
-      selected = coord;
-      legalTargets = legalMovesFrom(state, coord);
+  if (selectedUnitId !== null) {
+    const target = targetPieces.find((t) => t.coord.row === row && t.coord.col === col);
+    if (target) {
+      const result = performAttack(state, selectedUnitId, target.piece.id);
+      if (result.attempted) {
+        logCombatEvent({
+          actorTeam: "defender",
+          actorKind: "agent",
+          action: "attack",
+          hit: result.hit,
+          targetKind: target.piece.kind,
+          presidentCaptured: result.presidentCaptured,
+        });
+      }
+      selectUnit(selectedUnitId);
+      draw();
+      return;
     }
-    draw();
-    return;
+
+    const canMoveHere = reachableCache.some((c) => c.row === row && c.col === col);
+    if (canMoveHere) {
+      const unitId = selectedUnitId;
+      const result = performMove(state, unitId, coord);
+      if (result.moved) {
+        log("An agent repositions.");
+        playSound("move");
+        for (const shot of result.overwatchShots) {
+          logCombatEvent({ actorTeam: "attacker", actorKind: "brawler", action: "reaction", hit: shot.hit });
+        }
+      }
+      if (findPieceCoord(state, unitId)) {
+        selectUnit(unitId);
+      } else {
+        deselect();
+      }
+      draw();
+      return;
+    }
   }
 
-  if (selected.row === coord.row && selected.col === coord.col) {
-    selected = null;
-    legalTargets = [];
-    draw();
-    return;
-  }
-
-  const isTarget = legalTargets.some((t) => t.row === row && t.col === col);
-  if (isTarget) {
-    const result = applyMove(state, { from: selected, to: coord });
-    if (result.captured.length > 0) {
-      log(`Secret Service pins down ${result.captured.length} protestor${result.captured.length > 1 ? "s" : ""}.`);
-      playSound("capture");
+  if (piece && piece.team === "defender" && piece.kind === "agent" && piece.ap > 0) {
+    if (selectedUnitId === piece.id) {
+      deselect();
     } else {
-      log("An agent repositions.");
-      playSound("move");
+      selectUnit(piece.id);
     }
-    selected = null;
-    legalTargets = [];
-    state.phase = "president-phase";
-    draw();
-    if (!state.winner) runAIPhases();
-    return;
+  } else {
+    deselect();
   }
-
-  if (piece && piece.team === "defender" && !piece.isPresident) {
-    selected = coord;
-    legalTargets = legalMovesFrom(state, coord);
-    draw();
-    return;
-  }
-
-  selected = null;
-  legalTargets = [];
   draw();
 }
 
-function maybeAutoAdvance() {
-  if (state.winner) return;
-  if (state.phase === "defender-phase" && !defenderHasPlayableMoves()) {
-    log("No Secret Service agent can move — the President is on their own this round.");
-    state.phase = "president-phase";
-    runAIPhases();
+// Checkpoints the exact board position whenever it's safe to resume from
+// (the player's turn, nothing mid-air). A loss clears the snapshot instead —
+// there's nothing useful to resume into once the level is over.
+function persistSnapshot() {
+  if (currentScreen !== "game") return;
+  if (state.winner) {
+    saveProgress({ snapshot: null });
+    return;
   }
+  if (state.phase !== "defender-phase") return;
+  saveProgress({ levelIndex, presidentId: profile.id, snapshot: state });
 }
 
 function runAIPhases() {
@@ -415,78 +458,111 @@ function runAIPhases() {
   draw();
 
   setTimeout(() => {
+    resetAP(state, ["president"]);
+    state.phase = "president-phase";
+    draw();
+
     runPresidentPhase();
+
     if (state.winner) {
       awaitingAI = false;
       draw();
       handleWinner();
       return;
     }
-    state.phase = "attacker-phase";
-    draw();
 
     setTimeout(() => {
-      runAttackerPhase();
+      resetAP(state, ["brawler", "chucker"]);
+      state.phase = "attacker-phase";
+      draw();
+
+      const events = runAttackerTurn(state);
+      for (const ev of events) logCombatEvent(ev);
+
+      if (!state.winner) {
+        const spawned = spawnAttackers(state);
+        if (spawned.length > 0) {
+          log(`More protestors spill out of a building${spawned.length > 1 ? "s" : ""} down the block.`);
+          playSound("spawn");
+        }
+      }
+
       awaitingAI = false;
       if (state.winner) {
         draw();
         handleWinner();
         return;
       }
+
+      resetAP(state, ["agent"]);
       state.phase = "defender-phase";
       draw();
-      maybeAutoAdvance();
     }, 500);
   }, 500);
 }
 
 function runPresidentPhase() {
-  const from = state.presidentPos;
-  const to = decidePresidentMove(state, profile);
+  for (;;) {
+    const piece = state.board[state.presidentPos.row][state.presidentPos.col];
+    if (!piece || piece.kind !== "president" || piece.ap <= 0) break;
 
-  if (!to) {
-    log(`${profile.name} holds position.`);
-  } else {
-    const result = applyMove(state, { from, to });
-    log(`${profile.name}: ${pickLine(profile.flavor.move)}`);
-    playSound(result.captured.length > 0 ? "capture" : "move");
-    if (result.captured.length > 0) {
-      log(`The President's move traps ${result.captured.length} protestor${result.captured.length > 1 ? "s" : ""}!`);
+    const to = decidePresidentMove(state, profile);
+    if (!to) {
+      log(`${profile.name} holds position.`);
+      break;
     }
+
+    const result = performMove(state, piece.id, to);
+    if (!result.moved) break;
+
+    log(`${profile.name}: ${pickLine(profile.flavor.move)}`);
+    playSound("move");
+
+    if (result.eliminated) return;
     if (result.presidentEscaped) {
       log(`${profile.name}: ${pickLine(profile.flavor.escape)}`);
       return;
     }
   }
 
-  if (adjacentAttackerCount(state, state.presidentPos) >= 2) {
+  const nearbyThreats = piecesInRange(state, state.presidentPos, 1, { team: "attacker" }).length;
+  if (nearbyThreats >= 2) {
     log(`${profile.name}: ${pickLine(profile.flavor.danger)}`);
     playSound("danger");
   }
 }
 
-function runAttackerPhase() {
-  const move = decideAttackerMove(state);
-  if (move) {
-    const result = applyMove(state, move);
-    if (result.captured.length > 0) {
-      log("A Secret Service agent is overwhelmed and pulled from the line.");
-      playSound("agentLost");
+function logCombatEvent(ev: CombatEvent) {
+  if (ev.action === "reaction") {
+    if (ev.hit) {
+      log("An agent on overwatch fires — direct hit.");
+      playSound("capture");
     } else {
-      log("The crowd surges forward.");
+      log("An agent on overwatch fires and misses.");
+      playSound("miss");
     }
-    if (result.presidentCaptured) {
-      log(`${profile.name}: ${pickLine(profile.flavor.captured)}`);
-      return;
-    }
-  } else {
-    log("The crowd presses in, boxed in for the moment.");
+    return;
   }
 
-  const spawned = spawnAttackers(state);
-  if (spawned.length > 0) {
-    log(`More protestors spill out of a building${spawned.length > 1 ? "s" : ""} down the block.`);
-    playSound("spawn");
+  const actor =
+    ev.actorKind === "brawler"
+      ? "A protestor with a bat"
+      : ev.actorKind === "chucker"
+        ? "A protestor"
+        : "An agent";
+  const verb =
+    ev.actorKind === "chucker" ? "hurls a bottle at" : ev.actorKind === "brawler" ? "swings at" : "levels a taser at";
+  const targetWord =
+    ev.targetKind === "president" ? "the President" : ev.targetKind === "agent" ? "an agent" : "a protestor";
+
+  if (ev.hit) {
+    log(`${actor} ${verb} ${targetWord}${ev.presidentCaptured ? " — and grabs hold!" : " — connects."}`);
+    if (!ev.presidentCaptured) {
+      playSound(ev.actorTeam === "attacker" && ev.targetKind === "agent" ? "agentLost" : "capture");
+    }
+  } else {
+    log(`${actor} ${verb} ${targetWord} — misses.`);
+    playSound("miss");
   }
 }
 

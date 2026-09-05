@@ -2,6 +2,7 @@
 export type SoundName =
   | "move"
   | "capture"
+  | "miss"
   | "agentLost"
   | "spawn"
   | "danger"
@@ -146,6 +147,9 @@ export function playSound(name: SoundName) {
     case "capture":
       noiseBurst(0.12, 0.22);
       tone(180, 0.15, "square", 0.18);
+      break;
+    case "miss":
+      tone(300, 0.06, "sine", 0.1, 250);
       break;
     case "agentLost":
       tone(220, 0.35, "sawtooth", 0.2, 90);

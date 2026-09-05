@@ -1,9 +1,16 @@
 export type Team = "defender" | "attacker";
 
+// agent = Secret Service (defender team). president = the objective (also
+// nominally "defender" team for cover/AI purposes, but never attacks).
+// brawler/chucker = the two protestor archetypes (attacker team).
+export type UnitKind = "agent" | "president" | "brawler" | "chucker";
+
 export interface Piece {
   id: number;
   team: Team;
-  isPresident: boolean;
+  kind: UnitKind;
+  ap: number;
+  onOverwatch: boolean;
 }
 
 export interface Coord {
@@ -13,19 +20,14 @@ export interface Coord {
 
 export type Cell = Piece | null;
 
-// "wall" = building frontage, fully impassable.
-// "door" = a gap in the building where protestors spawn in from; walkable.
-// "open" = plain street.
+// "wall" = building frontage, fully impassable, but grants cover to units
+// standing next to it. "door" = a gap in the building where protestors
+// spawn in from; walkable, no cover. "open" = plain street.
 export type Terrain = "open" | "wall" | "door";
 
 export type Phase = "defender-phase" | "president-phase" | "attacker-phase";
 
 export type Winner = "defenders" | "attackers" | null;
-
-export interface Move {
-  from: Coord;
-  to: Coord;
-}
 
 export interface GameState {
   width: number;
@@ -41,4 +43,5 @@ export interface GameState {
   roundsUntilSpawn: number;
   spawnIntervalRounds: number;
   spawnCountPerWave: number;
+  chuckerSpawnChance: number;
 }

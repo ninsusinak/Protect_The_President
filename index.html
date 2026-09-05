@@ -74,11 +74,19 @@
             </section>
 
             <section class="controls">
-              <button id="retry-btn">Retry Level</button>
+              <p id="unit-info" class="unit-info">Select a Secret Service agent to begin.</p>
+              <div class="action-buttons">
+                <button id="overwatch-btn" class="secondary" disabled>Overwatch</button>
+                <button id="end-turn-btn">End Turn</button>
+              </div>
+            </section>
+
+            <section class="controls">
+              <button id="retry-btn" class="secondary">Retry Level</button>
             </section>
 
             <section>
-              <h2 id="status">Your move: choose a Secret Service piece.</h2>
+              <h2 id="status">Your move: choose a Secret Service agent.</h2>
             </section>
 
             <section class="log-section">
@@ -89,11 +97,14 @@
             <section class="legend">
               <h2>Legend</h2>
               <ul>
-                <li><span class="swatch defender"></span> Secret Service (you) — no reinforcements</li>
-                <li><span class="swatch attacker"></span> Protestors (AI) — endless supply</li>
-                <li><span class="swatch president"></span> The President (autonomous)</li>
-                <li><span class="swatch door"></span> Building door — protestors spawn here</li>
+                <li><span class="swatch defender"></span> Agent (SS) — shield/spray, ranged, no reinforcements</li>
+                <li><span class="swatch president"></span> The President (autonomous, unarmed)</li>
+                <li><span class="swatch brawler"></span> Protestor (B) — bat, melee only, can grab the President</li>
+                <li><span class="swatch chucker"></span> Protestor (C) — thrown rocks, ranged, can't grab</li>
+                <li><span class="swatch door"></span> Building door — protestors spawn here, endless supply</li>
                 <li><span class="swatch exit"></span> Exit — get the President here to win</li>
+                <li><span class="swatch cover-ring"></span> Cover — next to a wall, harder to hit at range</li>
+                <li><span class="swatch overwatch-ring"></span> Overwatch — fires on the first enemy that moves in range</li>
               </ul>
             </section>
           </div>

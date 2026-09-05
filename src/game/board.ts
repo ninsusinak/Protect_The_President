@@ -1,4 +1,4 @@
-import type { Coord, Terrain } from "./types";
+import type { Coord, Terrain, UnitKind } from "./types";
 
 export const DIRECTIONS: Coord[] = [
   { row: -1, col: 0 },
@@ -30,9 +30,12 @@ export interface LevelConfig {
   doorRows: number[];
   barricadeRows?: number[];
   numDefenders: number;
-  numAttackers: number;
+  numBrawlers: number;
+  numChuckers: number;
   spawnIntervalRounds: number;
   spawnCountPerWave: number;
+  // Chance each newly-spawned protestor is a chucker rather than a brawler.
+  chuckerSpawnChance: number;
 }
 
 export interface Level {
@@ -46,9 +49,10 @@ export interface Level {
   exit: Coord;
   presidentStart: Coord;
   defenderStarts: Coord[];
-  attackerStarts: Coord[];
+  attackerStarts: Array<{ coord: Coord; kind: UnitKind }>;
   spawnIntervalRounds: number;
   spawnCountPerWave: number;
+  chuckerSpawnChance: number;
 }
 
 // Offsets radiating out from the president's start square, in the order
@@ -78,7 +82,7 @@ function buildDefenderStarts(presidentStart: Coord, count: number): Coord[] {
 
 // Deterministic zigzag scatter across the open street, leaving a buffer
 // near the exit and near the motorcade's own starting cluster.
-function buildAttackerStarts(terrain: Terrain[][], width: number, height: number, count: number): Coord[] {
+function scatterCoords(terrain: Terrain[][], width: number, height: number, count: number): Coord[] {
   const interiorCols: number[] = [];
   for (let col = 1; col < width - 1; col++) interiorCols.push(col);
 
@@ -107,6 +111,27 @@ function buildAttackerStarts(terrain: Terrain[][], width: number, height: number
   }
 
   return coords;
+}
+
+// Interleaves brawler/chucker assignments proportionally across the
+// scattered coordinates, so the initial crowd is a mix throughout the
+// street rather than clustered by type.
+function assignKinds(count: number, brawlers: number, chuckers: number): UnitKind[] {
+  const kinds: UnitKind[] = [];
+  let bRemaining = brawlers;
+  let cRemaining = chuckers;
+  for (let i = 0; i < count; i++) {
+    const bFrac = brawlers === 0 ? -1 : bRemaining / brawlers;
+    const cFrac = chuckers === 0 ? -1 : cRemaining / chuckers;
+    if (bFrac >= cFrac) {
+      kinds.push("brawler");
+      bRemaining--;
+    } else {
+      kinds.push("chucker");
+      cRemaining--;
+    }
+  }
+  return kinds;
 }
 
 export function buildLevel(config: LevelConfig): Level {
@@ -148,7 +173,11 @@ export function buildLevel(config: LevelConfig): Level {
   const exit: Coord = { row: 0, col: centerCol };
   const presidentStart: Coord = { row: height - 1, col: centerCol };
   const defenderStarts = buildDefenderStarts(presidentStart, config.numDefenders);
-  const attackerStarts = buildAttackerStarts(terrain, width, height, config.numAttackers);
+
+  const attackerCount = config.numBrawlers + config.numChuckers;
+  const coords = scatterCoords(terrain, width, height, attackerCount);
+  const kinds = assignKinds(attackerCount, config.numBrawlers, config.numChuckers);
+  const attackerStarts = coords.map((coord, i) => ({ coord, kind: kinds[i] }));
 
   return {
     id: config.id,
@@ -164,6 +193,7 @@ export function buildLevel(config: LevelConfig): Level {
     attackerStarts,
     spawnIntervalRounds: config.spawnIntervalRounds,
     spawnCountPerWave: config.spawnCountPerWave,
+    chuckerSpawnChance: config.chuckerSpawnChance,
   };
 }
 
@@ -176,21 +206,25 @@ export const LEVELS: LevelConfig[] = [
     height: 15,
     doorRows: [2, 4, 6, 8, 10, 12],
     numDefenders: 6,
-    numAttackers: 10,
+    numBrawlers: 8,
+    numChuckers: 2,
     spawnIntervalRounds: 2,
     spawnCountPerWave: 1,
+    chuckerSpawnChance: 0.2,
   },
   {
     id: "market-street",
     name: "Market Street",
-    briefing: "Bigger crowd today. Same distance, more doors to watch.",
+    briefing: "Bigger crowd today, and some of them are throwing things. Watch your lines.",
     width: 9,
     height: 17,
     doorRows: [2, 4, 6, 8, 10, 12, 14],
     numDefenders: 6,
-    numAttackers: 12,
+    numBrawlers: 8,
+    numChuckers: 4,
     spawnIntervalRounds: 2,
     spawnCountPerWave: 1,
+    chuckerSpawnChance: 0.3,
   },
   {
     id: "barricade-ave",
@@ -201,9 +235,11 @@ export const LEVELS: LevelConfig[] = [
     doorRows: [2, 4, 6, 8, 10, 12, 14],
     barricadeRows: [9],
     numDefenders: 6,
-    numAttackers: 14,
+    numBrawlers: 8,
+    numChuckers: 6,
     spawnIntervalRounds: 2,
     spawnCountPerWave: 2,
+    chuckerSpawnChance: 0.35,
   },
   {
     id: "capitol-approach",
@@ -214,9 +250,11 @@ export const LEVELS: LevelConfig[] = [
     doorRows: [2, 4, 6, 8, 10, 12, 14, 16],
     barricadeRows: [7, 13],
     numDefenders: 7,
-    numAttackers: 16,
+    numBrawlers: 8,
+    numChuckers: 8,
     spawnIntervalRounds: 1,
     spawnCountPerWave: 1,
+    chuckerSpawnChance: 0.4,
   },
   {
     id: "motorcade-mile",
@@ -227,8 +265,10 @@ export const LEVELS: LevelConfig[] = [
     doorRows: [2, 4, 6, 8, 10, 12, 14, 16, 18],
     barricadeRows: [6, 12, 16],
     numDefenders: 8,
-    numAttackers: 20,
+    numBrawlers: 10,
+    numChuckers: 10,
     spawnIntervalRounds: 1,
     spawnCountPerWave: 2,
+    chuckerSpawnChance: 0.5,
   },
 ];

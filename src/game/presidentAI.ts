@@ -1,5 +1,6 @@
 import type { Coord, GameState } from "./types";
-import { exitDistance, legalMovesFrom, nearestAttackerDistance } from "./rules";
+import { exitDistance, nearestAttackerDistance, reachableTiles } from "./rules";
+import { statsFor } from "./units";
 import type { PresidentProfile } from "./presidents";
 
 function pickBestBy(options: Coord[], score: (c: Coord) => number): Coord {
@@ -9,14 +10,12 @@ function pickBestBy(options: Coord[], score: (c: Coord) => number): Coord {
   return top[Math.floor(Math.random() * top.length)];
 }
 
-// Decides whether the (autonomous, non-player-controlled) president moves
-// this turn, and where, purely from the selected profile's personality.
-export function decidePresidentMove(
-  state: GameState,
-  profile: PresidentProfile,
-): Coord | null {
+// Decides whether the (autonomous, non-player-controlled) president spends
+// one move action this turn, and where, purely from the selected profile's
+// personality. Called once per remaining AP by the caller.
+export function decidePresidentMove(state: GameState, profile: PresidentProfile): Coord | null {
   const from = state.presidentPos;
-  const options = legalMovesFrom(state, from);
+  const options = reachableTiles(state, from, statsFor("president").moveRange);
   if (options.length === 0) return null;
   if (Math.random() > profile.moveEagerness) return null;
 

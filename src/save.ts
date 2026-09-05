@@ -14,7 +14,9 @@ export interface SaveData {
   snapshot: GameState | null;
 }
 
-const STORAGE_KEY = "protect-the-president-save-v1";
+// v2: bumped when the tactical rework changed the Piece/GameState shape —
+// old v1 saves are simply ignored rather than crashing on load.
+const STORAGE_KEY = "protect-the-president-save-v2";
 
 const DEFAULTS: SaveData = {
   levelIndex: 0,

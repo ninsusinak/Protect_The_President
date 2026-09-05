@@ -118,6 +118,17 @@ input[type="range"] {
   font-weight: 600;
 }
 
+.unit-info {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
 .side-panel {
   flex: 1 1 260px;
   min-width: 0;
@@ -247,8 +258,12 @@ button.small {
   background: #2a6fdb;
 }
 
-.swatch.attacker {
+.swatch.brawler {
   background: #c0392b;
+}
+
+.swatch.chucker {
+  background: #a34fb0;
 }
 
 .swatch.president {
@@ -263,6 +278,20 @@ button.small {
 .swatch.exit {
   background: #1f4a2f;
   border-radius: 2px;
+}
+
+.swatch.cover-ring,
+.swatch.overwatch-ring {
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.swatch.cover-ring {
+  border: 2px solid rgba(120, 200, 255, 0.9);
+}
+
+.swatch.overwatch-ring {
+  border: 2px solid #4fd0e0;
 }
 
 @media (max-width: 480px) {
