@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Protect the President</title>
+  </head>
+  <body>
+    <div id="app">
+      <h1>Protect the President</h1>
+      <p class="subtitle">A satirical Hnefatafl-inspired standoff at street level.</p>
+
+      <div class="layout">
+        <div class="board-panel">
+          <canvas id="board" width="448" height="448"></canvas>
+        </div>
+
+        <div class="side-panel">
+          <section>
+            <label for="president-select">President</label>
+            <select id="president-select"></select>
+            <p id="president-tagline" class="tagline"></p>
+          </section>
+
+          <section class="controls">
+            <button id="new-game">New Rally</button>
+          </section>
+
+          <section>
+            <h2 id="status">Your move: choose a Secret Service piece.</h2>
+          </section>
+
+          <section class="log-section">
+            <h2>Situation Report</h2>
+            <ul id="log"></ul>
+          </section>
+
+          <section class="legend">
+            <h2>Legend</h2>
+            <ul>
+              <li><span class="swatch defender"></span> Secret Service (you)</li>
+              <li><span class="swatch attacker"></span> Protestors (AI)</li>
+              <li><span class="swatch president"></span> The President (autonomous)</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

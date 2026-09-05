@@ -1,58 +1,59 @@
 # Protect the President
 
-Protect the President is a game developed in Godot, inspired by the ancient board game Hnefatafl. In this game, the traditional Hnefatafl setup is reimagined where the king is replaced by a president, selectable from a range of US presidential skins past and present. The defenders take the role of presidential bodyguards, while the attackers portray protestors. The objective for the defenders is to safely escort the president to one or more escape areas on street-level layouts, while the attackers aim to surround and capture the president.
-Gameplay Overview
+Protect the President is a browser game inspired by Hnefatafl (Viking chess). The king is replaced by a president, selectable from a roster of satirical archetypes. Secret Service defenders (played by you) must escort the president to one of the board's escape squares, while AI-controlled protestors try to surround and capture the president first. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
 
-    Objective: The defenders must guide the president to one of the designated escape areas on the street-level board layout. The attackers must surround and capture the president before reaching the escape areas.
+### Gameplay Overview
 
-    Board Layout: The game takes place on various street-level layouts, which may include obstacles and strategic positions affecting movement and tactics.
+- **Objective:** Get the president to an escape square (defenders win) or surround the president with protestors (attackers win).
+- **Board:** A 7x7 tafl-style board (the compact "Brandub" layout) with a central throne and four corner escape squares.
+- **Roles:**
+  - **Defenders (you):** Secret Service agents. Move one piece per turn.
+  - **Attackers (AI):** Protestors. A simple greedy AI that prioritizes captures and otherwise closes the distance to the president.
+  - **The President (AI, autonomous):** Not controlled by either side. Each round it decides on its own whether and where to move, biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
+- **Movement:** Orthogonal sliding moves (like a chess rook), same as classic tafl.
+- **Capture:** Standard tafl sandwich-capture — flank an enemy piece between two of your own (or a hostile throne/corner square) to remove it. The president is captured only once surrounded on all four sides by protestors.
 
-    Player Roles:
-        Defenders: Control presidential bodyguards. Their goal is to ensure the safe passage of the president to the escape areas.
-        Attackers: Control protestors. They aim to capture the president by surrounding them with their pieces.
+### Tech Stack
 
-    Movement: Similar to Hnefatafl, pieces (bodyguards and protestors) move orthogonally (not diagonally) across the board. Bodyguards move to protect and escort the president, while protestors move to surround and capture the president.
-
-    Victory Conditions:
-        Defenders Win: Successfully escort the president to one of the escape areas.
-        Attackers Win: Surround and capture the president before reaching safety.
-
-### Features
-
-    Customizable President: Choose from a range of US presidential skins, both historical and present-day.
-
-    Varied Street-Level Layouts: Each game presents a unique board layout with different strategic challenges.
-
-    Traditional Hnefatafl Rules: The game adheres to the core rules of Hnefatafl, providing a familiar gameplay experience with a modern twist.
-
-    Single Player and Multiplayer Modes: Play against AI opponents or challenge friends in local multiplayer.
-
-### Screenshots
-### Getting Started
-### Prerequisites
-
-    Godot Engine: Ensure you have Godot Engine installed. You can download it from Godot Engine Official Website.
+Vite + TypeScript, rendered to an HTML5 canvas. No build framework beyond Vite; game logic lives in `src/game/` and is UI-agnostic.
 
 ### Running the Game
 
-    Clone this repository:
+```bash
+npm install
+npm run dev
+```
 
-    bash
+Then open the printed local URL in a browser.
 
-    git clone git@github.com:ninsusinak/Protect_The_President.git
+To produce a static production build:
 
-    Open the project in Godot Engine.
+```bash
+npm run build
+npm run preview
+```
 
-    Navigate to the main scene (Main.tscn) and run the scene to start the game.
+### Project Structure
 
+```
+src/
+  game/
+    types.ts        Core types (board, pieces, moves, game state)
+    board.ts         Board geometry (size, throne, corners)
+    rules.ts         Move generation, capture resolution, win conditions
+    presidents.ts    Selectable president roster: personality + flavor text
+    presidentAI.ts   Decides the president's autonomous move each round
+    attackerAI.ts    Decides the protestor AI's move each round
+  render.ts          Canvas rendering
+  main.ts            App wiring: DOM, input handling, turn loop
+```
+
+`src/game/presidents.ts` is a plain data file — the shipped roster is a set of fictional archetypes (`The Showman`, `The Statesman`, `The Wildcard`, `The Isolationist`) so the satire targets a *type* of politician rather than a specific real person. Swap in real historical presidents there if you want a more pointed roster; nothing else in the codebase needs to change.
 
 ### Contributing
 
 Contributions are welcome! If you have suggestions, improvements, or bug fixes, feel free to submit a pull request or open an issue.
-License
+
+### License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-Acknowledgements
-
-    Godot Engine: Open-source game engine used to develop this game.
-    Hnefatafl: Traditional Viking board game that inspired the gameplay mechanics.
