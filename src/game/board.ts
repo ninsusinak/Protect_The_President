@@ -149,17 +149,23 @@ export function buildLevel(config: LevelConfig): Level {
     terrain[row][rightCol] = doorRowSet.has(row) ? "door" : "wall";
   }
 
-  // Interior barricades: a wall clear across the street but for one gap,
-  // alternating which side the gap falls on so the safe path zigzags.
+  // Interior barricades: a wall clear across the street but for a gap,
+  // alternating which side of the president's own lane the gap falls on
+  // so the safe path zigzags — a couple of tiles, not clear across the
+  // street. A gap placed by fixed fraction-of-width instead of relative to
+  // the president's column forces huge lateral detours on top of already
+  // slow (1 tile/action) movement once a level has more than one barricade.
+  // The gap is also 2 tiles wide, not 1 — a single-file chokepoint is brutal
+  // once both sides' movement (and the president's own escort) has to
+  // funnel through the exact same square; two tiles keeps the tactical
+  // chokepoint without making it a near-certain wipeout.
+  const centerCol = Math.floor(width / 2);
   const interiorCols: number[] = [];
   for (let col = leftCol + 1; col < rightCol; col++) interiorCols.push(col);
   barricadeRows.forEach((row, i) => {
-    const gapCol =
-      i % 2 === 0
-        ? interiorCols[Math.floor(interiorCols.length * 0.25)]
-        : interiorCols[Math.floor(interiorCols.length * 0.75)];
+    const gapStart = i % 2 === 0 ? centerCol - 2 : centerCol + 1;
     for (const col of interiorCols) {
-      terrain[row][col] = col === gapCol ? "open" : "wall";
+      terrain[row][col] = col === gapStart || col === gapStart + 1 ? "open" : "wall";
     }
   });
 
@@ -169,7 +175,6 @@ export function buildLevel(config: LevelConfig): Level {
     doors.push({ row, col: rightCol });
   }
 
-  const centerCol = Math.floor(width / 2);
   const exit: Coord = { row: 0, col: centerCol };
   const presidentStart: Coord = { row: height - 1, col: centerCol };
   const defenderStarts = buildDefenderStarts(presidentStart, config.numDefenders);
@@ -203,72 +208,72 @@ export const LEVELS: LevelConfig[] = [
     name: "First Block",
     briefing: "One block between here and the car. Keep it tight.",
     width: 9,
-    height: 15,
-    doorRows: [2, 4, 6, 8, 10, 12],
+    height: 9,
+    doorRows: [2, 4, 6],
     numDefenders: 6,
-    numBrawlers: 8,
-    numChuckers: 2,
-    spawnIntervalRounds: 2,
+    numBrawlers: 5,
+    numChuckers: 1,
+    spawnIntervalRounds: 3,
     spawnCountPerWave: 1,
-    chuckerSpawnChance: 0.2,
+    chuckerSpawnChance: 0.15,
   },
   {
     id: "market-street",
     name: "Market Street",
     briefing: "Bigger crowd today, and some of them are throwing things. Watch your lines.",
     width: 9,
-    height: 17,
-    doorRows: [2, 4, 6, 8, 10, 12, 14],
+    height: 10,
+    doorRows: [2, 4, 6],
     numDefenders: 6,
-    numBrawlers: 8,
-    numChuckers: 4,
+    numBrawlers: 7,
+    numChuckers: 3,
     spawnIntervalRounds: 2,
     spawnCountPerWave: 1,
-    chuckerSpawnChance: 0.3,
+    chuckerSpawnChance: 0.25,
   },
   {
     id: "barricade-ave",
     name: "Barricade Avenue",
     briefing: "They've thrown up a barricade. Funnel through the gap — so will they.",
     width: 9,
-    height: 17,
-    doorRows: [2, 4, 6, 8, 10, 12, 14],
-    barricadeRows: [9],
+    height: 11,
+    doorRows: [2, 4, 6, 8],
+    barricadeRows: [6],
     numDefenders: 6,
-    numBrawlers: 8,
-    numChuckers: 6,
-    spawnIntervalRounds: 2,
-    spawnCountPerWave: 2,
-    chuckerSpawnChance: 0.35,
+    numBrawlers: 6,
+    numChuckers: 3,
+    spawnIntervalRounds: 3,
+    spawnCountPerWave: 1,
+    chuckerSpawnChance: 0.25,
   },
   {
     id: "capitol-approach",
     name: "Capitol Approach",
     briefing: "Wider street, two checkpoints, no time to rest.",
     width: 11,
-    height: 19,
-    doorRows: [2, 4, 6, 8, 10, 12, 14, 16],
-    barricadeRows: [7, 13],
-    numDefenders: 7,
-    numBrawlers: 8,
-    numChuckers: 8,
-    spawnIntervalRounds: 1,
+    height: 12,
+    doorRows: [2, 4, 6, 8],
+    barricadeRows: [4, 8],
+    numDefenders: 6,
+    numBrawlers: 9,
+    numChuckers: 5,
+    spawnIntervalRounds: 2,
     spawnCountPerWave: 1,
-    chuckerSpawnChance: 0.4,
+    chuckerSpawnChance: 0.3,
   },
   {
     id: "motorcade-mile",
     name: "The Motorcade Mile",
     briefing: "Last stretch. Everyone who can walk is out here today.",
     width: 11,
-    height: 21,
-    doorRows: [2, 4, 6, 8, 10, 12, 14, 16, 18],
-    barricadeRows: [6, 12, 16],
+    height: 14,
+    doorRows: [2, 4, 6, 8, 10],
+    barricadeRows: [4, 7, 10],
     numDefenders: 8,
-    numBrawlers: 10,
-    numChuckers: 10,
-    spawnIntervalRounds: 1,
+    numBrawlers: 8,
+    numChuckers: 5,
+    spawnIntervalRounds: 2,
     spawnCountPerWave: 2,
-    chuckerSpawnChance: 0.5,
+    chuckerSpawnChance: 0.35,
   },
 ];
