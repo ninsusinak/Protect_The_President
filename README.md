@@ -14,6 +14,14 @@ Protect the President is a browser game inspired by Hnefatafl (Viking chess), re
 - **Movement:** Orthogonal sliding moves (like a chess rook), blocked by walls and other pieces.
 - **Capture:** Sandwich-capture — flank an enemy piece between two of your own, or between one of yours and a building wall, to remove it (pinning someone against the buildings works same as pinning them between two agents). The president is captured once every side is either a protestor or a wall.
 
+### Front End
+
+- **Title screen:** pick your president, jump into a new campaign, or continue a saved one.
+- **Options:** sound on/off, volume, clear the saved game — reachable from the title screen or mid-game via the in-game Menu button (which also offers Quit to Title).
+- **Checkpoints:** clearing a level saves your progress (level reached, chosen president, audio settings) to `localStorage`. Losing the president never touches the save — it just retries the current level from scratch, full roster restored.
+- **Sound:** short SFX (move, capture, agent lost, protestor spawn, danger, level clear, game over, UI clicks) synthesized live via the WebAudio API — no audio files to ship.
+- **Touch:** the board is a tap target like any other — select a piece, tap a highlighted square to move it. The canvas scales to fit narrow screens while keeping click/tap coordinates accurate.
+
 ### Tech Stack
 
 Vite + TypeScript, rendered to an HTML5 canvas. No build framework beyond Vite; game logic lives in `src/game/` and is UI-agnostic.
@@ -46,7 +54,9 @@ src/
     presidentAI.ts   Decides the president's autonomous move each round
     attackerAI.ts    Decides the protestor AI's move each round
   render.ts          Canvas rendering
-  main.ts            App wiring: DOM, input handling, turn loop
+  sound.ts           Synthesized SFX (WebAudio, no asset files)
+  save.ts            localStorage save data: checkpoint level, president, audio prefs
+  main.ts            App wiring: screens, DOM, input handling, turn loop
 ```
 
 ### The Campaign

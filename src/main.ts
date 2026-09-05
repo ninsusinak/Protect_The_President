@@ -13,16 +13,40 @@ import {
   spawnAttackers,
 } from "./game/rules";
 import type { Coord, GameState } from "./game/types";
+import { getVolume, initAudio, isSoundEnabled, playSound, setSoundEnabled, setVolume } from "./sound";
+import { clearSave, loadSave, saveProgress } from "./save";
 
-const canvas = document.getElementById("board") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
-const presidentSelect = document.getElementById("president-select") as HTMLSelectElement;
-const presidentTagline = document.getElementById("president-tagline") as HTMLParagraphElement;
-const newGameButton = document.getElementById("new-game") as HTMLButtonElement;
+const titleScreenEl = document.getElementById("title-screen") as HTMLDivElement;
+const optionsScreenEl = document.getElementById("options-screen") as HTMLDivElement;
+const gameScreenEl = document.getElementById("game-screen") as HTMLDivElement;
+
+const titlePresidentSelect = document.getElementById("title-president-select") as HTMLSelectElement;
+const titlePresidentTagline = document.getElementById("title-president-tagline") as HTMLParagraphElement;
+const continueInfoEl = document.getElementById("continue-info") as HTMLParagraphElement;
+const continueBtn = document.getElementById("continue-btn") as HTMLButtonElement;
+const newGameBtn = document.getElementById("new-game-btn") as HTMLButtonElement;
+const titleOptionsBtn = document.getElementById("title-options-btn") as HTMLButtonElement;
+
+const soundToggle = document.getElementById("sound-toggle") as HTMLInputElement;
+const volumeSlider = document.getElementById("volume-slider") as HTMLInputElement;
+const clearSaveBtn = document.getElementById("clear-save-btn") as HTMLButtonElement;
+const quitToTitleBtn = document.getElementById("quit-to-title-btn") as HTMLButtonElement;
+const optionsBackBtn = document.getElementById("options-back-btn") as HTMLButtonElement;
+
+const menuBtn = document.getElementById("menu-btn") as HTMLButtonElement;
+const activePresidentEl = document.getElementById("active-president") as HTMLParagraphElement;
+const activePresidentTaglineEl = document.getElementById("active-president-tagline") as HTMLParagraphElement;
+const retryBtn = document.getElementById("retry-btn") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLHeadingElement;
 const logEl = document.getElementById("log") as HTMLUListElement;
 const levelHeadingEl = document.getElementById("level-heading") as HTMLParagraphElement;
 const levelBriefingEl = document.getElementById("level-briefing") as HTMLParagraphElement;
+const canvas = document.getElementById("board") as HTMLCanvasElement;
+const ctx = canvas.getContext("2d")!;
+
+type Screen = "title" | "options" | "game";
+let currentScreen: Screen = "title";
+let screenBeforeOptions: Screen = "title";
 
 let levelIndex = 0;
 let level: Level = buildLevel(LEVELS[levelIndex]);
@@ -33,33 +57,142 @@ let legalTargets: Coord[] = [];
 let awaitingAI = false;
 let winSequenceToken = 0;
 
+// ---- Screen management ----
+
+function showScreen(screen: Screen) {
+  currentScreen = screen;
+  titleScreenEl.hidden = screen !== "title";
+  optionsScreenEl.hidden = screen !== "options";
+  gameScreenEl.hidden = screen !== "game";
+}
+
+function openOptions(from: Screen) {
+  screenBeforeOptions = from;
+  quitToTitleBtn.hidden = from !== "game";
+  showScreen("options");
+}
+
+function refreshContinueUI() {
+  const save = loadSave();
+  if (save) {
+    const lvl = LEVELS[Math.min(save.levelIndex, LEVELS.length - 1)];
+    continueBtn.hidden = false;
+    continueInfoEl.hidden = false;
+    continueInfoEl.textContent = `Saved: Level ${save.levelIndex + 1} of ${LEVELS.length} — ${lvl.name}`;
+  } else {
+    continueBtn.hidden = true;
+    continueInfoEl.hidden = true;
+  }
+}
+
+function uiClick() {
+  initAudio();
+  playSound("click");
+}
+
+// ---- Title screen setup ----
+
 for (const p of PRESIDENTS) {
   const opt = document.createElement("option");
   opt.value = p.id;
   opt.textContent = `${p.name} — ${p.archetype}`;
-  presidentSelect.appendChild(opt);
+  titlePresidentSelect.appendChild(opt);
 }
-presidentSelect.value = profile.id;
-presidentTagline.textContent = profile.tagline;
 
-presidentSelect.addEventListener("change", () => {
-  profile = PRESIDENTS.find((p) => p.id === presidentSelect.value) ?? PRESIDENTS[0];
-  presidentTagline.textContent = profile.tagline;
-  startCampaign();
+const initialSave = loadSave();
+profile = PRESIDENTS.find((p) => p.id === initialSave?.presidentId) ?? PRESIDENTS[0];
+titlePresidentSelect.value = profile.id;
+titlePresidentTagline.textContent = profile.tagline;
+if (initialSave) {
+  setSoundEnabled(initialSave.soundEnabled);
+  setVolume(initialSave.volume);
+}
+soundToggle.checked = isSoundEnabled();
+volumeSlider.value = String(Math.round(getVolume() * 100));
+refreshContinueUI();
+
+titlePresidentSelect.addEventListener("change", () => {
+  profile = PRESIDENTS.find((p) => p.id === titlePresidentSelect.value) ?? PRESIDENTS[0];
+  titlePresidentTagline.textContent = profile.tagline;
 });
 
-newGameButton.addEventListener("click", () => {
+newGameBtn.addEventListener("click", () => {
+  uiClick();
+  startCampaignAt(0);
+  showScreen("game");
+});
+
+continueBtn.addEventListener("click", () => {
+  uiClick();
+  const save = loadSave();
+  const startIndex = save ? Math.min(save.levelIndex, LEVELS.length - 1) : 0;
+  startCampaignAt(startIndex);
+  showScreen("game");
+});
+
+titleOptionsBtn.addEventListener("click", () => {
+  uiClick();
+  openOptions("title");
+});
+
+// ---- Options screen ----
+
+soundToggle.addEventListener("change", () => {
+  setSoundEnabled(soundToggle.checked);
+  saveProgress({ soundEnabled: soundToggle.checked });
+  if (soundToggle.checked) uiClick();
+});
+
+volumeSlider.addEventListener("input", () => {
+  setVolume(Number(volumeSlider.value) / 100);
+});
+
+volumeSlider.addEventListener("change", () => {
+  saveProgress({ volume: getVolume() });
+  uiClick();
+});
+
+clearSaveBtn.addEventListener("click", () => {
+  uiClick();
+  clearSave();
+  refreshContinueUI();
+});
+
+quitToTitleBtn.addEventListener("click", () => {
+  uiClick();
+  refreshContinueUI();
+  showScreen("title");
+});
+
+optionsBackBtn.addEventListener("click", () => {
+  uiClick();
+  showScreen(screenBeforeOptions);
+});
+
+// ---- In-game controls ----
+
+menuBtn.addEventListener("click", () => {
+  if (awaitingAI) return;
+  uiClick();
+  openOptions("game");
+});
+
+retryBtn.addEventListener("click", () => {
+  uiClick();
   const isFinal = levelIndex === LEVELS.length - 1;
   if (state.winner === "defenders" && isFinal) {
-    startCampaign();
+    startCampaignAt(0);
   } else {
     startLevel(levelIndex);
   }
 });
+
 canvas.addEventListener("click", handleCanvasClick);
 
-function startCampaign() {
-  startLevel(0);
+// ---- Game flow ----
+
+function startCampaignAt(index: number) {
+  startLevel(index);
   log(`${profile.name} takes the stage. ${profile.tagline}`);
 }
 
@@ -79,6 +212,8 @@ function startLevel(index: number) {
 
   levelHeadingEl.textContent = `Level ${levelIndex + 1} of ${LEVELS.length}: ${level.name}`;
   levelBriefingEl.textContent = level.briefing;
+  activePresidentEl.textContent = `${profile.name} — ${profile.archetype}`;
+  activePresidentTaglineEl.textContent = profile.tagline;
 
   logEl.innerHTML = "";
   for (const line of state.log) appendLogLine(line);
@@ -107,7 +242,8 @@ function draw() {
 
 function updateControls() {
   const isFinal = levelIndex === LEVELS.length - 1;
-  newGameButton.textContent = state.winner === "defenders" && isFinal ? "Play Again" : "Retry Level";
+  retryBtn.textContent = state.winner === "defenders" && isFinal ? "Play Again" : "Retry Level";
+  menuBtn.disabled = awaitingAI;
 }
 
 function updateStatus() {
@@ -139,6 +275,7 @@ function defenderHasPlayableMoves(): boolean {
 }
 
 function handleCanvasClick(ev: MouseEvent) {
+  if (currentScreen !== "game") return;
   if (state.winner || state.phase !== "defender-phase" || awaitingAI) return;
 
   const rect = canvas.getBoundingClientRect();
@@ -168,8 +305,10 @@ function handleCanvasClick(ev: MouseEvent) {
     const result = applyMove(state, { from: selected, to: coord });
     if (result.captured.length > 0) {
       log(`Secret Service pins down ${result.captured.length} protestor${result.captured.length > 1 ? "s" : ""}.`);
+      playSound("capture");
     } else {
       log("An agent repositions.");
+      playSound("move");
     }
     selected = null;
     legalTargets = [];
@@ -239,6 +378,7 @@ function runPresidentPhase() {
   } else {
     const result = applyMove(state, { from, to });
     log(`${profile.name}: ${pickLine(profile.flavor.move)}`);
+    playSound(result.captured.length > 0 ? "capture" : "move");
     if (result.captured.length > 0) {
       log(`The President's move traps ${result.captured.length} protestor${result.captured.length > 1 ? "s" : ""}!`);
     }
@@ -250,6 +390,7 @@ function runPresidentPhase() {
 
   if (adjacentAttackerCount(state, state.presidentPos) >= 2) {
     log(`${profile.name}: ${pickLine(profile.flavor.danger)}`);
+    playSound("danger");
   }
 }
 
@@ -259,6 +400,7 @@ function runAttackerPhase() {
     const result = applyMove(state, move);
     if (result.captured.length > 0) {
       log("A Secret Service agent is overwhelmed and pulled from the line.");
+      playSound("agentLost");
     } else {
       log("The crowd surges forward.");
     }
@@ -273,25 +415,32 @@ function runAttackerPhase() {
   const spawned = spawnAttackers(state);
   if (spawned.length > 0) {
     log(`More protestors spill out of a building${spawned.length > 1 ? "s" : ""} down the block.`);
+    playSound("spawn");
   }
 }
 
 function handleWinner() {
+  if (state.winner === "attackers") {
+    playSound("gameOver");
+    return;
+  }
   if (state.winner !== "defenders") return;
 
+  playSound("levelClear");
   const isFinal = levelIndex === LEVELS.length - 1;
+
   if (isFinal) {
+    saveProgress({ levelIndex, presidentId: profile.id });
     log(`${profile.name} reaches the car. Motorcade clear across every block — campaign complete!`);
     return;
   }
 
   log(`${profile.name} reaches the car safely. Block clear.`);
+  const nextIndex = levelIndex + 1;
+  saveProgress({ levelIndex: nextIndex, presidentId: profile.id });
   const token = ++winSequenceToken;
   setTimeout(() => {
     if (token !== winSequenceToken) return;
-    levelIndex += 1;
-    startLevel(levelIndex);
+    startLevel(nextIndex);
   }, 1800);
 }
-
-startCampaign();

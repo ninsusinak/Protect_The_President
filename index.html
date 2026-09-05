@@ -8,49 +8,90 @@
   </head>
   <body>
     <div id="app">
-      <h1>Protect the President</h1>
-      <p class="subtitle">
-        Escort the President to the waiting car, block by block. Protestors pour out of the
-        buildings for as long as it takes — your detail doesn't get reinforcements.
-      </p>
+      <div id="title-screen" class="screen">
+        <h1>Protect the President</h1>
+        <p class="subtitle">
+          Escort the President to the waiting car, block by block. Protestors pour out of the
+          buildings for as long as it takes — your detail doesn't get reinforcements.
+        </p>
 
-      <div class="layout">
-        <div class="board-panel">
-          <p id="level-heading" class="level-heading"></p>
-          <p id="level-briefing" class="level-briefing"></p>
-          <canvas id="board" width="396" height="660"></canvas>
+        <div class="card">
+          <label for="title-president-select">President</label>
+          <select id="title-president-select"></select>
+          <p id="title-president-tagline" class="tagline"></p>
+
+          <p id="continue-info" class="continue-info" hidden></p>
+
+          <div class="button-stack">
+            <button id="continue-btn" hidden>Continue</button>
+            <button id="new-game-btn">New Campaign</button>
+            <button id="title-options-btn" class="secondary">Options</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="options-screen" class="screen" hidden>
+        <h1>Options</h1>
+        <div class="card">
+          <label class="checkbox-row">
+            <input type="checkbox" id="sound-toggle" checked />
+            Sound effects
+          </label>
+
+          <label for="volume-slider">Volume</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="50" />
+
+          <div class="button-stack">
+            <button id="clear-save-btn" class="secondary">Clear Saved Game</button>
+            <button id="quit-to-title-btn" class="secondary" hidden>Quit to Title</button>
+            <button id="options-back-btn">Back</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="game-screen" class="screen" hidden>
+        <div class="game-topbar">
+          <h1>Protect the President</h1>
+          <button id="menu-btn" class="secondary small">Menu</button>
         </div>
 
-        <div class="side-panel">
-          <section>
-            <label for="president-select">President</label>
-            <select id="president-select"></select>
-            <p id="president-tagline" class="tagline"></p>
-          </section>
+        <div class="layout">
+          <div class="board-panel">
+            <p id="level-heading" class="level-heading"></p>
+            <p id="level-briefing" class="level-briefing"></p>
+            <canvas id="board" width="396" height="660"></canvas>
+          </div>
 
-          <section class="controls">
-            <button id="new-game">Retry Level</button>
-          </section>
+          <div class="side-panel">
+            <section>
+              <p id="active-president" class="active-president"></p>
+              <p id="active-president-tagline" class="tagline"></p>
+            </section>
 
-          <section>
-            <h2 id="status">Your move: choose a Secret Service piece.</h2>
-          </section>
+            <section class="controls">
+              <button id="retry-btn">Retry Level</button>
+            </section>
 
-          <section class="log-section">
-            <h2>Situation Report</h2>
-            <ul id="log"></ul>
-          </section>
+            <section>
+              <h2 id="status">Your move: choose a Secret Service piece.</h2>
+            </section>
 
-          <section class="legend">
-            <h2>Legend</h2>
-            <ul>
-              <li><span class="swatch defender"></span> Secret Service (you) — no reinforcements</li>
-              <li><span class="swatch attacker"></span> Protestors (AI) — endless supply</li>
-              <li><span class="swatch president"></span> The President (autonomous)</li>
-              <li><span class="swatch door"></span> Building door — protestors spawn here</li>
-              <li><span class="swatch exit"></span> Exit — get the President here to win</li>
-            </ul>
-          </section>
+            <section class="log-section">
+              <h2>Situation Report</h2>
+              <ul id="log"></ul>
+            </section>
+
+            <section class="legend">
+              <h2>Legend</h2>
+              <ul>
+                <li><span class="swatch defender"></span> Secret Service (you) — no reinforcements</li>
+                <li><span class="swatch attacker"></span> Protestors (AI) — endless supply</li>
+                <li><span class="swatch president"></span> The President (autonomous)</li>
+                <li><span class="swatch door"></span> Building door — protestors spawn here</li>
+                <li><span class="swatch exit"></span> Exit — get the President here to win</li>
+              </ul>
+            </section>
+          </div>
         </div>
       </div>
     </div>

@@ -24,6 +24,58 @@ h1 {
   color: #aaa;
 }
 
+.screen[hidden] {
+  display: none;
+}
+
+.card {
+  background: #26261f;
+  border: 1px solid #3a3a30;
+  border-radius: 6px;
+  padding: 1.25rem;
+  max-width: 420px;
+  margin-top: 1.5rem;
+}
+
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #eee;
+  margin-bottom: 1rem;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+input[type="range"] {
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.continue-info {
+  font-size: 0.85rem;
+  color: #9fcf9f;
+  margin: 0.75rem 0 0;
+}
+
+.game-topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .layout {
   display: flex;
   gap: 1.5rem;
@@ -31,10 +83,18 @@ h1 {
   align-items: flex-start;
 }
 
+.board-panel {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
 .board-panel canvas {
   border: 2px solid #444;
   border-radius: 4px;
   display: block;
+  max-width: 100%;
+  height: auto;
+  touch-action: manipulation;
 }
 
 .level-heading {
@@ -53,9 +113,14 @@ h1 {
   max-width: 396px;
 }
 
+.active-president {
+  margin: 0;
+  font-weight: 600;
+}
+
 .side-panel {
-  flex: 1;
-  min-width: 260px;
+  flex: 1 1 260px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -78,12 +143,13 @@ label {
 select,
 button {
   font: inherit;
-  padding: 0.5rem;
+  padding: 0.6rem;
   border-radius: 4px;
   border: 1px solid #555;
   background: #33332a;
   color: #eee;
   width: 100%;
+  touch-action: manipulation;
 }
 
 button {
@@ -96,6 +162,28 @@ button {
 
 button:hover {
   background: #e6c14f;
+}
+
+button:disabled {
+  background: #55523f;
+  color: #888;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #33332a;
+  color: #eee;
+  border: 1px solid #555;
+}
+
+button.secondary:hover {
+  background: #3d3d32;
+}
+
+button.small {
+  width: auto;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
 }
 
 .tagline {
@@ -175,4 +263,14 @@ button:hover {
 .swatch.exit {
   background: #1f4a2f;
   border-radius: 2px;
+}
+
+@media (max-width: 480px) {
+  #app {
+    padding: 1rem;
+  }
+
+  .card {
+    max-width: 100%;
+  }
 }
