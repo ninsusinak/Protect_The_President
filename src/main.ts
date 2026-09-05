@@ -1,5 +1,6 @@
 import "./style.css";
-import { CELL, renderBoard } from "./render";
+import { CELL, boardPixelSize, renderBoard } from "./render";
+import { LEVELS, buildLevel, type Level } from "./game/board";
 import { PRESIDENTS, pickLine, type PresidentProfile } from "./game/presidents";
 import { decideAttackerMove } from "./game/attackerAI";
 import { decidePresidentMove } from "./game/presidentAI";
@@ -20,12 +21,17 @@ const presidentTagline = document.getElementById("president-tagline") as HTMLPar
 const newGameButton = document.getElementById("new-game") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLHeadingElement;
 const logEl = document.getElementById("log") as HTMLUListElement;
+const levelHeadingEl = document.getElementById("level-heading") as HTMLParagraphElement;
+const levelBriefingEl = document.getElementById("level-briefing") as HTMLParagraphElement;
 
-let state: GameState;
+let levelIndex = 0;
+let level: Level = buildLevel(LEVELS[levelIndex]);
+let state: GameState = createInitialState(level);
 let profile: PresidentProfile = PRESIDENTS[0];
 let selected: Coord | null = null;
 let legalTargets: Coord[] = [];
 let awaitingAI = false;
+let winSequenceToken = 0;
 
 for (const p of PRESIDENTS) {
   const opt = document.createElement("option");
@@ -39,42 +45,81 @@ presidentTagline.textContent = profile.tagline;
 presidentSelect.addEventListener("change", () => {
   profile = PRESIDENTS.find((p) => p.id === presidentSelect.value) ?? PRESIDENTS[0];
   presidentTagline.textContent = profile.tagline;
-  newGame();
+  startCampaign();
 });
 
-newGameButton.addEventListener("click", newGame);
+newGameButton.addEventListener("click", () => {
+  const isFinal = levelIndex === LEVELS.length - 1;
+  if (state.winner === "defenders" && isFinal) {
+    startCampaign();
+  } else {
+    startLevel(levelIndex);
+  }
+});
 canvas.addEventListener("click", handleCanvasClick);
 
-function newGame() {
-  state = createInitialState();
+function startCampaign() {
+  startLevel(0);
+  log(`${profile.name} takes the stage. ${profile.tagline}`);
+}
+
+function startLevel(index: number) {
+  winSequenceToken++;
+  levelIndex = index;
+  level = buildLevel(LEVELS[levelIndex]);
+  state = createInitialState(level);
+
+  const px = boardPixelSize(state);
+  canvas.width = px.width;
+  canvas.height = px.height;
+
   selected = null;
   legalTargets = [];
   awaitingAI = false;
-  log(`${profile.name} takes the stage. ${profile.tagline}`);
+
+  levelHeadingEl.textContent = `Level ${levelIndex + 1} of ${LEVELS.length}: ${level.name}`;
+  levelBriefingEl.textContent = level.briefing;
+
+  logEl.innerHTML = "";
+  for (const line of state.log) appendLogLine(line);
+
   draw();
   maybeAutoAdvance();
 }
 
-function log(message: string) {
-  state.log.push(message);
+function appendLogLine(message: string) {
   const li = document.createElement("li");
   li.textContent = message;
   logEl.appendChild(li);
   logEl.scrollTop = logEl.scrollHeight;
 }
 
+function log(message: string) {
+  state.log.push(message);
+  appendLogLine(message);
+}
+
 function draw() {
   renderBoard(ctx, state, { selected, legalTargets });
   updateStatus();
+  updateControls();
+}
+
+function updateControls() {
+  const isFinal = levelIndex === LEVELS.length - 1;
+  newGameButton.textContent = state.winner === "defenders" && isFinal ? "Play Again" : "Retry Level";
 }
 
 function updateStatus() {
   if (state.winner === "defenders") {
-    statusEl.textContent = "The President escaped safely. Secret Service wins.";
+    const isFinal = levelIndex === LEVELS.length - 1;
+    statusEl.textContent = isFinal
+      ? "🎉 Every block cleared — the President is away safe. You win!"
+      : "The President reaches the car. Block clear!";
     return;
   }
   if (state.winner === "attackers") {
-    statusEl.textContent = "The President has been overwhelmed. Protestors win.";
+    statusEl.textContent = "The President has been overwhelmed. Retry the level.";
     return;
   }
   if (state.phase !== "defender-phase" || awaitingAI) {
@@ -164,6 +209,7 @@ function runAIPhases() {
     if (state.winner) {
       awaitingAI = false;
       draw();
+      handleWinner();
       return;
     }
     state.phase = "attacker-phase";
@@ -172,11 +218,14 @@ function runAIPhases() {
     setTimeout(() => {
       runAttackerPhase();
       awaitingAI = false;
-      if (!state.winner) {
-        state.phase = "defender-phase";
+      if (state.winner) {
+        draw();
+        handleWinner();
+        return;
       }
+      state.phase = "defender-phase";
       draw();
-      if (!state.winner) maybeAutoAdvance();
+      maybeAutoAdvance();
     }, 500);
   }, 500);
 }
@@ -227,4 +276,22 @@ function runAttackerPhase() {
   }
 }
 
-newGame();
+function handleWinner() {
+  if (state.winner !== "defenders") return;
+
+  const isFinal = levelIndex === LEVELS.length - 1;
+  if (isFinal) {
+    log(`${profile.name} reaches the car. Motorcade clear across every block — campaign complete!`);
+    return;
+  }
+
+  log(`${profile.name} reaches the car safely. Block clear.`);
+  const token = ++winSequenceToken;
+  setTimeout(() => {
+    if (token !== winSequenceToken) return;
+    levelIndex += 1;
+    startLevel(levelIndex);
+  }, 1800);
+}
+
+startCampaign();

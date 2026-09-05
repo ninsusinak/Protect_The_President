@@ -10,12 +10,14 @@
     <div id="app">
       <h1>Protect the President</h1>
       <p class="subtitle">
-        Escort the President up the block to the waiting car. Protestors pour out of the
+        Escort the President to the waiting car, block by block. Protestors pour out of the
         buildings for as long as it takes — your detail doesn't get reinforcements.
       </p>
 
       <div class="layout">
         <div class="board-panel">
+          <p id="level-heading" class="level-heading"></p>
+          <p id="level-briefing" class="level-briefing"></p>
           <canvas id="board" width="396" height="660"></canvas>
         </div>
 
@@ -27,7 +29,7 @@
           </section>
 
           <section class="controls">
-            <button id="new-game">New Rally</button>
+            <button id="new-game">Retry Level</button>
           </section>
 
           <section>

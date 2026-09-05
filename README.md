@@ -4,10 +4,11 @@ Protect the President is a browser game inspired by Hnefatafl (Viking chess), re
 
 ### Gameplay Overview
 
-- **Objective:** Get the president to the exit at the far end of the street (defenders win) or surround the president with protestors (attackers win).
-- **Board:** A long 9x15 street block. Buildings line both sides; a handful of doors in those buildings are where protestors spawn in from. There is exactly one exit, at the far end from where the motorcade starts.
+- **Objective:** Clear every block in the campaign. Get the president to the exit at the far end of a level to advance to the next one (defenders win the level) or lose the president to the crowd and retry it (attackers win the level).
+- **Campaign:** Five hand-tuned levels, each bigger and harder than the last — more doors, more starting protestors, faster spawn waves, and (from level 3 on) interior barricades that force a chokepoint. Beat all five and the campaign is complete.
+- **Board:** A long street block. Buildings line both sides; a handful of doors in those buildings are where protestors spawn in from. There is exactly one exit, at the far end from where the motorcade starts.
 - **Roles:**
-  - **Defenders (you):** A fixed roster of Secret Service agents. Move one piece per turn. Once an agent is taken out, they're gone for the rest of the game — no reinforcements.
+  - **Defenders (you):** A fixed roster of Secret Service agents, sized to the level. Move one piece per turn. Once an agent is taken out, they're gone for the rest of that level — no reinforcements. A fresh level means a fresh full roster.
   - **Attackers (AI):** Protestors. Endless supply — every couple of rounds, new protestors spill out of any open building door, for as long as the game runs. A simple greedy AI prioritizes captures and otherwise closes the distance to the president.
   - **The President (AI, autonomous):** Not controlled by either side. Each round it decides on its own whether and where to move, biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
 - **Movement:** Orthogonal sliding moves (like a chess rook), blocked by walls and other pieces.
@@ -39,7 +40,7 @@ npm run preview
 src/
   game/
     types.ts        Core types (board, pieces, moves, game state)
-    board.ts         Street layout: dimensions, walls/doors, exit, starting positions
+    board.ts         Level system: per-level configs, procedural layout generation (walls/doors/exit/starts)
     rules.ts         Move generation, capture resolution, protestor spawning, win conditions
     presidents.ts    Selectable president roster: personality + flavor text
     presidentAI.ts   Decides the president's autonomous move each round
@@ -47,6 +48,16 @@ src/
   render.ts          Canvas rendering
   main.ts            App wiring: DOM, input handling, turn loop
 ```
+
+### The Campaign
+
+`src/game/board.ts` exports `LEVELS`, an ordered array of `LevelConfig` objects — each one just a handful of tuning knobs (dimensions, which rows have doors, which rows have a barricade, defender/attacker counts, spawn rate). `buildLevel()` turns a config into a full playable layout deterministically (fixed defender formation, fixed zigzag attacker scatter — no randomness in the geometry itself, only in how the AI plays it). Add a level by appending another config to `LEVELS`; nothing else needs to change. The shipped campaign:
+
+1. **First Block** — the introduction.
+2. **Market Street** — bigger, more doors.
+3. **Barricade Avenue** — first interior chokepoint, faster spawn waves.
+4. **Capitol Approach** — wider street, two checkpoints, spawns every round.
+5. **The Motorcade Mile** — the finale: biggest board, most protestors, most barricades.
 
 `src/game/presidents.ts` is a plain data file — the shipped roster is a set of fictional archetypes (`The Showman`, `The Statesman`, `The Wildcard`, `The Isolationist`) so the satire targets a *type* of politician rather than a specific real person. Swap in real historical presidents there if you want a more pointed roster; nothing else in the codebase needs to change.
 

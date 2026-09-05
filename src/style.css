@@ -37,6 +37,22 @@ h1 {
   display: block;
 }
 
+.level-heading {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d4af37;
+  letter-spacing: 0.02em;
+}
+
+.level-briefing {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #aaa;
+  max-width: 396px;
+}
+
 .side-panel {
   flex: 1;
   min-width: 260px;

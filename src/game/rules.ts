@@ -1,16 +1,5 @@
-import {
-  ATTACKER_STARTS,
-  DEFENDER_STARTS,
-  DIRECTIONS,
-  EXIT,
-  HEIGHT,
-  PRESIDENT_START,
-  WIDTH,
-  buildTerrain,
-  doorCoords,
-  inBounds,
-  sameCoord,
-} from "./board";
+import { DIRECTIONS, inBounds as inBoundsRaw, sameCoord } from "./board";
+import type { Level } from "./board";
 import type { Cell, Coord, GameState, Move, Piece, Team } from "./types";
 
 let nextPieceId = 1;
@@ -19,30 +8,33 @@ function makePiece(team: Team, isPresident = false): Piece {
   return { id: nextPieceId++, team, isPresident };
 }
 
-const SPAWN_INTERVAL_ROUNDS = 2;
-const SPAWN_COUNT_PER_WAVE = 1;
+function inBounds(state: GameState, c: Coord): boolean {
+  return inBoundsRaw(c, state.width, state.height);
+}
 
-export function createInitialState(): GameState {
-  const board: Cell[][] = Array.from({ length: HEIGHT }, () =>
-    Array.from({ length: WIDTH }, () => null as Cell),
+export function createInitialState(level: Level): GameState {
+  const board: Cell[][] = Array.from({ length: level.height }, () =>
+    Array.from({ length: level.width }, () => null as Cell),
   );
 
-  for (const c of DEFENDER_STARTS) board[c.row][c.col] = makePiece("defender");
-  for (const c of ATTACKER_STARTS) board[c.row][c.col] = makePiece("attacker");
-  board[PRESIDENT_START.row][PRESIDENT_START.col] = makePiece("defender", true);
+  for (const c of level.defenderStarts) board[c.row][c.col] = makePiece("defender");
+  for (const c of level.attackerStarts) board[c.row][c.col] = makePiece("attacker");
+  board[level.presidentStart.row][level.presidentStart.col] = makePiece("defender", true);
 
   return {
-    width: WIDTH,
-    height: HEIGHT,
-    terrain: buildTerrain(),
-    doors: doorCoords(),
-    exit: { ...EXIT },
+    width: level.width,
+    height: level.height,
+    terrain: level.terrain.map((row) => [...row]),
+    doors: level.doors.map((c) => ({ ...c })),
+    exit: { ...level.exit },
     board,
-    presidentPos: { ...PRESIDENT_START },
+    presidentPos: { ...level.presidentStart },
     phase: "defender-phase",
     winner: null,
-    log: ["The motorcade holds at the corner. Get the President to the car."],
-    roundsUntilSpawn: SPAWN_INTERVAL_ROUNDS,
+    log: [`${level.name}: ${level.briefing}`],
+    roundsUntilSpawn: level.spawnIntervalRounds,
+    spawnIntervalRounds: level.spawnIntervalRounds,
+    spawnCountPerWave: level.spawnCountPerWave,
   };
 }
 
@@ -59,6 +51,8 @@ export function cloneState(state: GameState): GameState {
     winner: state.winner,
     log: [...state.log],
     roundsUntilSpawn: state.roundsUntilSpawn,
+    spawnIntervalRounds: state.spawnIntervalRounds,
+    spawnCountPerWave: state.spawnCountPerWave,
   };
 }
 
@@ -78,7 +72,7 @@ export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
   const moves: Coord[] = [];
   for (const dir of DIRECTIONS) {
     let cur: Coord = { row: from.row + dir.row, col: from.col + dir.col };
-    while (inBounds(cur) && !isWall(state, cur) && !pieceAt(state, cur)) {
+    while (inBounds(state, cur) && !isWall(state, cur) && !pieceAt(state, cur)) {
       moves.push({ ...cur });
       cur = { row: cur.row + dir.row, col: cur.col + dir.col };
     }
@@ -109,7 +103,7 @@ function isEnemyOf(piece: Piece, other: Piece): boolean {
 // or if it's a wall/off-board (pinning a piece against the buildings lets
 // a single attacker capture it, same as pinning it against a friendly piece).
 function isHostileFlank(state: GameState, at: Coord, victim: Piece): boolean {
-  if (!inBounds(at)) return true;
+  if (!inBounds(state, at)) return true;
   if (isWall(state, at)) return true;
   const occupant = pieceAt(state, at);
   if (!occupant) return false;
@@ -123,7 +117,7 @@ function resolveCaptures(state: GameState, moved: Coord): Coord[] {
   const captured: Coord[] = [];
   for (const dir of DIRECTIONS) {
     const victimPos: Coord = { row: moved.row + dir.row, col: moved.col + dir.col };
-    if (!inBounds(victimPos)) continue;
+    if (!inBounds(state, victimPos)) continue;
     const victim = pieceAt(state, victimPos);
     if (!victim || !isEnemyOf(mover, victim)) continue;
     if (victim.isPresident) continue; // president has its own capture rule
@@ -143,7 +137,7 @@ function checkPresidentCaptured(state: GameState): boolean {
   const pos = state.presidentPos;
   for (const dir of DIRECTIONS) {
     const c: Coord = { row: pos.row + dir.row, col: pos.col + dir.col };
-    if (!inBounds(c) || isWall(state, c)) continue;
+    if (!inBounds(state, c) || isWall(state, c)) continue;
     const occupant = pieceAt(state, c);
     if (!occupant || occupant.team !== "attacker") return false;
   }
@@ -189,13 +183,13 @@ export function applyMove(state: GameState, move: Move): ApplyResult {
 export function spawnAttackers(state: GameState): Coord[] {
   state.roundsUntilSpawn -= 1;
   if (state.roundsUntilSpawn > 0) return [];
-  state.roundsUntilSpawn = SPAWN_INTERVAL_ROUNDS;
+  state.roundsUntilSpawn = state.spawnIntervalRounds;
 
   const openDoors = state.doors.filter((d) => !pieceAt(state, d));
   if (openDoors.length === 0) return [];
 
   const spawned: Coord[] = [];
-  for (let i = 0; i < SPAWN_COUNT_PER_WAVE && openDoors.length > 0; i++) {
+  for (let i = 0; i < state.spawnCountPerWave && openDoors.length > 0; i++) {
     const idx = Math.floor(Math.random() * openDoors.length);
     const [door] = openDoors.splice(idx, 1);
     state.board[door.row][door.col] = makePiece("attacker");
@@ -218,7 +212,7 @@ export function adjacentAttackerCount(state: GameState, at: Coord): number {
   let n = 0;
   for (const dir of DIRECTIONS) {
     const c: Coord = { row: at.row + dir.row, col: at.col + dir.col };
-    if (!inBounds(c)) continue;
+    if (!inBounds(state, c)) continue;
     const occupant = pieceAt(state, c);
     if (occupant && occupant.team === "attacker") n++;
   }

@@ -1,12 +1,13 @@
-import { HEIGHT, WIDTH } from "./game/board";
 import type { Coord, GameState } from "./game/types";
 
 export const CELL = 44;
-export const BOARD_PX_W = CELL * WIDTH;
-export const BOARD_PX_H = CELL * HEIGHT;
 
 function sameCoord(a: Coord, b: Coord): boolean {
   return a.row === b.row && a.col === b.col;
+}
+
+export function boardPixelSize(state: GameState): { width: number; height: number } {
+  return { width: state.width * CELL, height: state.height * CELL };
 }
 
 export interface RenderOptions {
@@ -15,7 +16,8 @@ export interface RenderOptions {
 }
 
 export function renderBoard(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderOptions) {
-  ctx.clearRect(0, 0, BOARD_PX_W, BOARD_PX_H);
+  const { width: pxW, height: pxH } = boardPixelSize(state);
+  ctx.clearRect(0, 0, pxW, pxH);
 
   for (let row = 0; row < state.height; row++) {
     for (let col = 0; col < state.width; col++) {

@@ -39,4 +39,6 @@ export interface GameState {
   winner: Winner;
   log: string[];
   roundsUntilSpawn: number;
+  spawnIntervalRounds: number;
+  spawnCountPerWave: number;
 }
