@@ -1,11 +1,17 @@
+import type { GameState } from "./game/types";
+
 // Single-slot save: how far the player has checkpointed into the campaign,
-// plus their chosen president and audio prefs. Level-start checkpoints
-// only — a loss just retries the current level, it never touches this.
+// their chosen president, audio prefs, and (if a level is mid-play) a full
+// snapshot of the board so Continue can resume exactly where they left off.
+// A loss never touches this beyond clearing the snapshot — it just retries
+// the current level, checkpoint (levelIndex) unchanged.
 export interface SaveData {
   levelIndex: number;
   presidentId: string;
   soundEnabled: boolean;
+  musicEnabled: boolean;
   volume: number;
+  snapshot: GameState | null;
 }
 
 const STORAGE_KEY = "protect-the-president-save-v1";
@@ -14,7 +20,9 @@ const DEFAULTS: SaveData = {
   levelIndex: 0,
   presidentId: "showman",
   soundEnabled: true,
+  musicEnabled: true,
   volume: 0.5,
+  snapshot: null,
 };
 
 export function loadSave(): SaveData | null {

@@ -12,6 +12,7 @@ export type SoundName =
 let ctx: AudioContext | null = null;
 let enabled = true;
 let volume = 0.5;
+let musicEnabled = true;
 
 // AudioContext must be created/resumed from a real user gesture (a button
 // click qualifies) — browsers block audio otherwise.
@@ -33,10 +34,21 @@ export function isSoundEnabled(): boolean {
 
 export function setVolume(v: number) {
   volume = Math.max(0, Math.min(1, v));
+  if (musicGain) musicGain.gain.value = MUSIC_LEVEL * volume;
 }
 
 export function getVolume(): number {
   return volume;
+}
+
+export function setMusicEnabled(v: boolean) {
+  musicEnabled = v;
+  if (!v) stopMusic();
+  else startMusic();
+}
+
+export function isMusicEnabled(): boolean {
+  return musicEnabled;
 }
 
 function tone(freq: number, duration: number, type: OscillatorType, gainLevel: number, glideTo?: number) {
@@ -67,6 +79,62 @@ function noiseBurst(duration: number, gainLevel: number) {
   gain.gain.setValueAtTime(gainLevel * volume, now);
   src.connect(gain).connect(ctx.destination);
   src.start(now);
+}
+
+// A tiny generative loop — a slow four-chord pad — instead of a shipped
+// audio file. Purely ambient: quiet, repetitive, easy to ignore.
+const MUSIC_LEVEL = 0.1;
+const CHORD_SECONDS = 3.6;
+const CHORDS: number[][] = [
+  [110, 130.81, 164.81], // Am
+  [87.31, 110, 130.81], // F
+  [98, 123.47, 146.83], // C (2nd inversion, low)
+  [98, 123.47, 164.81], // G-ish resolve
+];
+
+let musicGain: GainNode | null = null;
+let musicChordIndex = 0;
+let musicTimer: number | null = null;
+
+function scheduleChord() {
+  if (!ctx || !musicGain) return;
+  const now = ctx.currentTime;
+  const chord = CHORDS[musicChordIndex % CHORDS.length];
+  musicChordIndex++;
+
+  for (const freq of chord) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(1, now + 0.8);
+    gain.gain.linearRampToValueAtTime(0, now + CHORD_SECONDS);
+    osc.connect(gain).connect(musicGain);
+    osc.start(now);
+    osc.stop(now + CHORD_SECONDS + 0.1);
+  }
+
+  musicTimer = window.setTimeout(scheduleChord, CHORD_SECONDS * 1000 * 0.92);
+}
+
+export function startMusic() {
+  if (!ctx || !musicEnabled || musicTimer !== null) return;
+  musicGain = ctx.createGain();
+  musicGain.gain.value = MUSIC_LEVEL * volume;
+  musicGain.connect(ctx.destination);
+  scheduleChord();
+}
+
+export function stopMusic() {
+  if (musicTimer !== null) {
+    clearTimeout(musicTimer);
+    musicTimer = null;
+  }
+  if (musicGain) {
+    musicGain.disconnect();
+    musicGain = null;
+  }
 }
 
 export function playSound(name: SoundName) {

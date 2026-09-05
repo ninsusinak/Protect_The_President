@@ -13,7 +13,18 @@ import {
   spawnAttackers,
 } from "./game/rules";
 import type { Coord, GameState } from "./game/types";
-import { getVolume, initAudio, isSoundEnabled, playSound, setSoundEnabled, setVolume } from "./sound";
+import {
+  getVolume,
+  initAudio,
+  isMusicEnabled,
+  isSoundEnabled,
+  playSound,
+  setMusicEnabled,
+  setSoundEnabled,
+  setVolume,
+  startMusic,
+  stopMusic,
+} from "./sound";
 import { clearSave, loadSave, saveProgress } from "./save";
 
 const titleScreenEl = document.getElementById("title-screen") as HTMLDivElement;
@@ -28,6 +39,7 @@ const newGameBtn = document.getElementById("new-game-btn") as HTMLButtonElement;
 const titleOptionsBtn = document.getElementById("title-options-btn") as HTMLButtonElement;
 
 const soundToggle = document.getElementById("sound-toggle") as HTMLInputElement;
+const musicToggle = document.getElementById("music-toggle") as HTMLInputElement;
 const volumeSlider = document.getElementById("volume-slider") as HTMLInputElement;
 const clearSaveBtn = document.getElementById("clear-save-btn") as HTMLButtonElement;
 const quitToTitleBtn = document.getElementById("quit-to-title-btn") as HTMLButtonElement;
@@ -106,8 +118,10 @@ titlePresidentTagline.textContent = profile.tagline;
 if (initialSave) {
   setSoundEnabled(initialSave.soundEnabled);
   setVolume(initialSave.volume);
+  setMusicEnabled(initialSave.musicEnabled);
 }
 soundToggle.checked = isSoundEnabled();
+musicToggle.checked = isMusicEnabled();
 volumeSlider.value = String(Math.round(getVolume() * 100));
 refreshContinueUI();
 
@@ -120,14 +134,20 @@ newGameBtn.addEventListener("click", () => {
   uiClick();
   startCampaignAt(0);
   showScreen("game");
+  startMusic();
 });
 
 continueBtn.addEventListener("click", () => {
   uiClick();
   const save = loadSave();
   const startIndex = save ? Math.min(save.levelIndex, LEVELS.length - 1) : 0;
-  startCampaignAt(startIndex);
+  if (save?.snapshot) {
+    resumeFromSnapshot(startIndex, save.snapshot);
+  } else {
+    startCampaignAt(startIndex);
+  }
   showScreen("game");
+  startMusic();
 });
 
 titleOptionsBtn.addEventListener("click", () => {
@@ -141,6 +161,13 @@ soundToggle.addEventListener("change", () => {
   setSoundEnabled(soundToggle.checked);
   saveProgress({ soundEnabled: soundToggle.checked });
   if (soundToggle.checked) uiClick();
+});
+
+musicToggle.addEventListener("change", () => {
+  initAudio();
+  setMusicEnabled(musicToggle.checked);
+  saveProgress({ musicEnabled: musicToggle.checked });
+  if (musicToggle.checked) uiClick();
 });
 
 volumeSlider.addEventListener("input", () => {
@@ -160,6 +187,7 @@ clearSaveBtn.addEventListener("click", () => {
 
 quitToTitleBtn.addEventListener("click", () => {
   uiClick();
+  stopMusic();
   refreshContinueUI();
   showScreen("title");
 });
@@ -222,6 +250,48 @@ function startLevel(index: number) {
   maybeAutoAdvance();
 }
 
+// Restores a mid-level board exactly as saved, rather than rebuilding the
+// level from scratch — used by Continue when a snapshot is available.
+function resumeFromSnapshot(index: number, snapshot: GameState) {
+  winSequenceToken++;
+  levelIndex = index;
+  level = buildLevel(LEVELS[levelIndex]);
+  state = snapshot;
+
+  const px = boardPixelSize(state);
+  canvas.width = px.width;
+  canvas.height = px.height;
+
+  selected = null;
+  legalTargets = [];
+  awaitingAI = false;
+
+  levelHeadingEl.textContent = `Level ${levelIndex + 1} of ${LEVELS.length}: ${level.name}`;
+  levelBriefingEl.textContent = level.briefing;
+  activePresidentEl.textContent = `${profile.name} — ${profile.archetype}`;
+  activePresidentTaglineEl.textContent = profile.tagline;
+
+  logEl.innerHTML = "";
+  for (const line of state.log) appendLogLine(line);
+  log("Picking back up right where you left off.");
+
+  draw();
+  maybeAutoAdvance();
+}
+
+// Checkpoints the exact board position whenever it's safe to resume from
+// (the player's turn, nothing mid-air). A loss clears the snapshot instead —
+// there's nothing useful to resume into once the level is over.
+function persistSnapshot() {
+  if (currentScreen !== "game") return;
+  if (state.winner) {
+    saveProgress({ snapshot: null });
+    return;
+  }
+  if (state.phase !== "defender-phase") return;
+  saveProgress({ levelIndex, presidentId: profile.id, snapshot: state });
+}
+
 function appendLogLine(message: string) {
   const li = document.createElement("li");
   li.textContent = message;
@@ -238,6 +308,7 @@ function draw() {
   renderBoard(ctx, state, { selected, legalTargets });
   updateStatus();
   updateControls();
+  persistSnapshot();
 }
 
 function updateControls() {

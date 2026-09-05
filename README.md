@@ -17,9 +17,9 @@ Protect the President is a browser game inspired by Hnefatafl (Viking chess), re
 ### Front End
 
 - **Title screen:** pick your president, jump into a new campaign, or continue a saved one.
-- **Options:** sound on/off, volume, clear the saved game — reachable from the title screen or mid-game via the in-game Menu button (which also offers Quit to Title).
-- **Checkpoints:** clearing a level saves your progress (level reached, chosen president, audio settings) to `localStorage`. Losing the president never touches the save — it just retries the current level from scratch, full roster restored.
-- **Sound:** short SFX (move, capture, agent lost, protestor spawn, danger, level clear, game over, UI clicks) synthesized live via the WebAudio API — no audio files to ship.
+- **Options:** sound effects on/off, music on/off, volume, clear the saved game — reachable from the title screen or mid-game via the in-game Menu button (which also offers Quit to Title).
+- **Checkpoints:** the game saves a full snapshot of the board to `localStorage` every time it's safely your turn — not just on level clear. Close the tab mid-level and Continue picks up on the exact same position, pieces and all. Losing the president never touches the save — it just retries the current level from scratch, full roster restored.
+- **Sound:** short SFX (move, capture, agent lost, protestor spawn, danger, level clear, game over, UI clicks) plus a quiet generative four-chord background loop, both synthesized live via the WebAudio API — no audio files to ship.
 - **Touch:** the board is a tap target like any other — select a piece, tap a highlighted square to move it. The canvas scales to fit narrow screens while keeping click/tap coordinates accurate.
 
 ### Tech Stack
@@ -54,8 +54,8 @@ src/
     presidentAI.ts   Decides the president's autonomous move each round
     attackerAI.ts    Decides the protestor AI's move each round
   render.ts          Canvas rendering
-  sound.ts           Synthesized SFX (WebAudio, no asset files)
-  save.ts            localStorage save data: checkpoint level, president, audio prefs
+  sound.ts           Synthesized SFX + generative background music (WebAudio, no asset files)
+  save.ts            localStorage save data: checkpoint level, president, audio prefs, mid-level snapshot
   main.ts            App wiring: screens, DOM, input handling, turn loop
 ```
 
