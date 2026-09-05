@@ -1,6 +1,6 @@
-# Protect the President
+# Save the Idiot-in-Chief
 
-Protect the President is a browser game inspired by Hnefatafl (Viking chess), reworked into a street-level escort mission. Secret Service defenders (played by you) must get a president — selectable from a roster of satirical archetypes — up the block to a single waiting car, while AI-controlled protestors pour out of the buildings to stop them. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
+Save the Idiot-in-Chief is a browser game inspired by Hnefatafl (Viking chess), reworked into a street-level escort mission. Secret Service defenders (played by you) must get a president — selectable from a roster of satirical archetypes — up the block to a single waiting car, while AI-controlled protestors pour out of the buildings to stop them. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
 
 ### Gameplay Overview
 
@@ -11,8 +11,8 @@ Protect the President is a browser game inspired by Hnefatafl (Viking chess), re
 - **Roles:**
   - **Defenders (you) — Agents:** shield/pepper-spray/taser, ranged (range 4), moderate accuracy. A fixed roster sized to the level; once an agent is taken out, they're gone for the rest of that level — no reinforcements. A fresh level means a fresh full roster.
   - **Attackers (AI) — two protestor archetypes:** **Brawlers** carry bats/pipes, melee only (must be adjacent), high accuracy, and are the *only* ones who can actually grab the president (thrown rocks don't count as a capture). **Chuckers** throw rocks/bottles from range, lower accuracy, can hurt agents but can never capture the president. Endless supply — every couple of rounds, new protestors of a random type spill out of any open building door, for as long as the game runs.
-  - **The President (AI, autonomous, unarmed):** Not controlled by either side. Each round it decides on its own whether and where to move (up to 2 AP worth), biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
-- **Movement:** BFS-pathed, bounded by each unit's move range per action — blocked by walls and by other units (no walking through the crowd).
+  - **The President (AI, autonomous, unarmed):** Not controlled by either side, and deliberately slow — about one square per action, far behind an agent's range. Each round it decides on its own whether and where to move (up to 2 AP worth), biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
+- **Movement:** BFS-pathed, bounded by each unit's move range per action — blocked by walls and by other units (no walking through the crowd). The President's range is 1 tile per action; everyone else moves several tiles at a time, which is the whole tension — you have to clear and hold the way, not just outrun the crowd.
 - **Hit chance:** base accuracy per unit type, minus a flat penalty if the target is in cover (adjacent to a wall) and a range penalty for ranged attacks past 2 tiles, minus an extra penalty on reaction (Overwatch) shots. Always clamped between 5% and 95% — nothing is ever a sure thing or truly impossible.
 - **Framing note:** combat stays non-lethal by design — agents carry shields/spray/tasers, protestors carry bats or throw objects, and outcomes are described as knocked down, grabbed, or pulled from the line, never shot or killed. See `src/game/units.ts` if you want to reskin this.
 

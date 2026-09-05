@@ -24,8 +24,11 @@ export const UNIT_STATS: Record<UnitKind, UnitStats> = {
     label: "Secret Service",
   },
   president: {
+    // Deliberately much slower than everyone else — advances roughly one
+    // square per action, so the detail has to actually clear the way rather
+    // than let the President outrun the crowd alone.
     maxAp: 2,
-    moveRange: 4,
+    moveRange: 1,
     attackRange: 0,
     baseAccuracy: 0,
     isMelee: false,
