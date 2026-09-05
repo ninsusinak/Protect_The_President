@@ -64,7 +64,8 @@ function isWall(state: GameState, c: Coord): boolean {
   return state.terrain[c.row][c.col] === "wall";
 }
 
-// Sliding rook-style moves, blocked by walls and other pieces alike.
+// Defenders and attackers slide like rooks; the president advances one square
+// at a time. All movement is blocked by walls and other pieces alike.
 export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
   const piece = pieceAt(state, from);
   if (!piece) return [];
@@ -72,9 +73,17 @@ export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
   const moves: Coord[] = [];
   for (const dir of DIRECTIONS) {
     let cur: Coord = { row: from.row + dir.row, col: from.col + dir.col };
-    while (inBounds(state, cur) && !isWall(state, cur) && !pieceAt(state, cur)) {
+    const maxDistance = piece.isPresident ? 1 : Infinity;
+    let distance = 1;
+    while (
+      distance <= maxDistance &&
+      inBounds(state, cur) &&
+      !isWall(state, cur) &&
+      !pieceAt(state, cur)
+    ) {
       moves.push({ ...cur });
       cur = { row: cur.row + dir.row, col: cur.col + dir.col };
+      distance += 1;
     }
   }
   return moves;

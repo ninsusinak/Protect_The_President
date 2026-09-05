@@ -1,6 +1,6 @@
-# Protect the President
+# Save the Idiot-in-Chief
 
-Protect the President is a browser game inspired by Hnefatafl (Viking chess), reworked into a street-level escort mission. Secret Service defenders (played by you) must get a president — selectable from a roster of satirical archetypes — up the block to a single waiting car, while AI-controlled protestors pour out of the buildings to stop them. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
+Save the Idiot-in-Chief is a browser game inspired by Hnefatafl (Viking chess), reworked into a street-level escort mission. Secret Service defenders (played by you) must get a president — selectable from a roster of satirical archetypes — up the block to a single waiting car, while AI-controlled protestors pour out of the buildings to stop them. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
 
 ### Gameplay Overview
 
@@ -11,7 +11,7 @@ Protect the President is a browser game inspired by Hnefatafl (Viking chess), re
   - **Defenders (you):** A fixed roster of Secret Service agents, sized to the level. Move one piece per turn. Once an agent is taken out, they're gone for the rest of that level — no reinforcements. A fresh level means a fresh full roster.
   - **Attackers (AI):** Protestors. Endless supply — every couple of rounds, new protestors spill out of any open building door, for as long as the game runs. A simple greedy AI prioritizes captures and otherwise closes the distance to the president.
   - **The President (AI, autonomous):** Not controlled by either side. Each round it decides on its own whether and where to move, biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
-- **Movement:** Orthogonal sliding moves (like a chess rook), blocked by walls and other pieces.
+- **Movement:** Secret Service agents and protestors make orthogonal sliding moves (like a chess rook), blocked by walls and other pieces. The president moves only one orthogonal square per round.
 - **Capture:** Sandwich-capture — flank an enemy piece between two of your own, or between one of yours and a building wall, to remove it (pinning someone against the buildings works same as pinning them between two agents). The president is captured once every side is either a protestor or a wall.
 
 ### Front End
