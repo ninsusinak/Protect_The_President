@@ -1,5 +1,5 @@
 import type { Coord, GameState } from "./types";
-import { legalMovesFrom, nearestAttackerDistance, nearestCornerDistance } from "./rules";
+import { exitDistance, legalMovesFrom, nearestAttackerDistance } from "./rules";
 import type { PresidentProfile } from "./presidents";
 
 function pickBestBy(options: Coord[], score: (c: Coord) => number): Coord {
@@ -24,7 +24,7 @@ export function decidePresidentMove(
     case "flee":
       return pickBestBy(
         options,
-        (c) => nearestAttackerDistance(state, c) * 10 - nearestCornerDistance(c),
+        (c) => nearestAttackerDistance(state, c) * 10 - exitDistance(state, c),
       );
     case "bold":
       return pickBestBy(options, (c) => -nearestAttackerDistance(state, c));

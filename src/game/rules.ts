@@ -1,11 +1,14 @@
 import {
-  CORNERS,
+  ATTACKER_STARTS,
+  DEFENDER_STARTS,
   DIRECTIONS,
-  SIZE,
+  EXIT,
+  HEIGHT,
+  PRESIDENT_START,
+  WIDTH,
+  buildTerrain,
+  doorCoords,
   inBounds,
-  isCorner,
-  isRestrictedSquare,
-  isThrone,
   sameCoord,
 } from "./board";
 import type { Cell, Coord, GameState, Move, Piece, Team } from "./types";
@@ -16,52 +19,46 @@ function makePiece(team: Team, isPresident = false): Piece {
   return { id: nextPieceId++, team, isPresident };
 }
 
-// Classic Brandub opening array: president on the throne, four defenders
-// guarding the cross-points around it, eight attackers on the outer edges.
+const SPAWN_INTERVAL_ROUNDS = 2;
+const SPAWN_COUNT_PER_WAVE = 1;
+
 export function createInitialState(): GameState {
-  const board: Cell[][] = Array.from({ length: SIZE }, () =>
-    Array.from({ length: SIZE }, () => null as Cell),
+  const board: Cell[][] = Array.from({ length: HEIGHT }, () =>
+    Array.from({ length: WIDTH }, () => null as Cell),
   );
 
-  const defenderSpots: Coord[] = [
-    { row: 2, col: 3 },
-    { row: 3, col: 2 },
-    { row: 4, col: 3 },
-    { row: 3, col: 4 },
-  ];
-  const attackerSpots: Coord[] = [
-    { row: 0, col: 3 },
-    { row: 1, col: 3 },
-    { row: 6, col: 3 },
-    { row: 5, col: 3 },
-    { row: 3, col: 0 },
-    { row: 3, col: 1 },
-    { row: 3, col: 6 },
-    { row: 3, col: 5 },
-  ];
-
-  for (const c of defenderSpots) board[c.row][c.col] = makePiece("defender");
-  for (const c of attackerSpots) board[c.row][c.col] = makePiece("attacker");
-
-  const presidentPos: Coord = { row: 3, col: 3 };
-  board[presidentPos.row][presidentPos.col] = makePiece("defender", true);
+  for (const c of DEFENDER_STARTS) board[c.row][c.col] = makePiece("defender");
+  for (const c of ATTACKER_STARTS) board[c.row][c.col] = makePiece("attacker");
+  board[PRESIDENT_START.row][PRESIDENT_START.col] = makePiece("defender", true);
 
   return {
+    width: WIDTH,
+    height: HEIGHT,
+    terrain: buildTerrain(),
+    doors: doorCoords(),
+    exit: { ...EXIT },
     board,
-    presidentPos,
+    presidentPos: { ...PRESIDENT_START },
     phase: "defender-phase",
     winner: null,
-    log: ["The rally is underway. Get the President out safely."],
+    log: ["The motorcade holds at the corner. Get the President to the car."],
+    roundsUntilSpawn: SPAWN_INTERVAL_ROUNDS,
   };
 }
 
 export function cloneState(state: GameState): GameState {
   return {
+    width: state.width,
+    height: state.height,
+    terrain: state.terrain.map((row) => [...row]),
+    doors: state.doors.map((c) => ({ ...c })),
+    exit: { ...state.exit },
     board: state.board.map((row) => row.map((cell) => (cell ? { ...cell } : null))),
     presidentPos: { ...state.presidentPos },
     phase: state.phase,
     winner: state.winner,
     log: [...state.log],
+    roundsUntilSpawn: state.roundsUntilSpawn,
   };
 }
 
@@ -69,8 +66,11 @@ function pieceAt(state: GameState, c: Coord): Cell {
   return state.board[c.row][c.col];
 }
 
-// Sliding rook-style moves. Non-president pieces may pass over an empty
-// throne/corner square but may never end their move on one.
+function isWall(state: GameState, c: Coord): boolean {
+  return state.terrain[c.row][c.col] === "wall";
+}
+
+// Sliding rook-style moves, blocked by walls and other pieces alike.
 export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
   const piece = pieceAt(state, from);
   if (!piece) return [];
@@ -78,12 +78,7 @@ export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
   const moves: Coord[] = [];
   for (const dir of DIRECTIONS) {
     let cur: Coord = { row: from.row + dir.row, col: from.col + dir.col };
-    while (inBounds(cur)) {
-      if (pieceAt(state, cur)) break;
-      if (isRestrictedSquare(cur) && !piece.isPresident) {
-        cur = { row: cur.row + dir.row, col: cur.col + dir.col };
-        continue;
-      }
+    while (inBounds(cur) && !isWall(state, cur) && !pieceAt(state, cur)) {
       moves.push({ ...cur });
       cur = { row: cur.row + dir.row, col: cur.col + dir.col };
     }
@@ -93,8 +88,8 @@ export function legalMovesFrom(state: GameState, from: Coord): Coord[] {
 
 export function allLegalMoves(state: GameState, team: Team): Move[] {
   const moves: Move[] = [];
-  for (let row = 0; row < SIZE; row++) {
-    for (let col = 0; col < SIZE; col++) {
+  for (let row = 0; row < state.height; row++) {
+    for (let col = 0; col < state.width; col++) {
       const piece = state.board[row][col];
       if (!piece || piece.team !== team) continue;
       const from = { row, col };
@@ -110,14 +105,15 @@ function isEnemyOf(piece: Piece, other: Piece): boolean {
   return piece.team !== other.team;
 }
 
-// A square is hostile toward `victim` if it holds an enemy piece, or if it's
-// an empty throne/corner (those squares are hostile to everyone, standard
-// tafl style).
+// A square is a hostile flank against `victim` if it holds an enemy piece,
+// or if it's a wall/off-board (pinning a piece against the buildings lets
+// a single attacker capture it, same as pinning it against a friendly piece).
 function isHostileFlank(state: GameState, at: Coord, victim: Piece): boolean {
-  if (!inBounds(at)) return false;
+  if (!inBounds(at)) return true;
+  if (isWall(state, at)) return true;
   const occupant = pieceAt(state, at);
-  if (occupant) return isEnemyOf(occupant, victim);
-  return isThrone(at) || isCorner(at);
+  if (!occupant) return false;
+  return isEnemyOf(occupant, victim);
 }
 
 function resolveCaptures(state: GameState, moved: Coord): Coord[] {
@@ -130,7 +126,6 @@ function resolveCaptures(state: GameState, moved: Coord): Coord[] {
     if (!inBounds(victimPos)) continue;
     const victim = pieceAt(state, victimPos);
     if (!victim || !isEnemyOf(mover, victim)) continue;
-
     if (victim.isPresident) continue; // president has its own capture rule
 
     const beyond: Coord = { row: victimPos.row + dir.row, col: victimPos.col + dir.col };
@@ -142,13 +137,13 @@ function resolveCaptures(state: GameState, moved: Coord): Coord[] {
   return captured;
 }
 
-// The president is only captured once surrounded on all four orthogonal
-// sides by attackers (a deliberately simple "hard" surround rule).
+// The president is captured once every orthogonal side is either a wall,
+// the board edge, or an attacker — cornered against the buildings counts.
 function checkPresidentCaptured(state: GameState): boolean {
   const pos = state.presidentPos;
   for (const dir of DIRECTIONS) {
     const c: Coord = { row: pos.row + dir.row, col: pos.col + dir.col };
-    if (!inBounds(c)) return false;
+    if (!inBounds(c) || isWall(state, c)) continue;
     const occupant = pieceAt(state, c);
     if (!occupant || occupant.team !== "attacker") return false;
   }
@@ -181,12 +176,32 @@ export function applyMove(state: GameState, move: Move): ApplyResult {
     if (presidentCaptured) state.winner = "attackers";
   }
 
-  if (piece.isPresident && isCorner(move.to)) {
+  if (piece.isPresident && sameCoord(move.to, state.exit)) {
     presidentEscaped = true;
     state.winner = "defenders";
   }
 
   return { captured, presidentCaptured, presidentEscaped };
+}
+
+// Endless protestor supply: every couple of rounds, new attackers spill out
+// of any building doors that are currently clear. Defenders never get this.
+export function spawnAttackers(state: GameState): Coord[] {
+  state.roundsUntilSpawn -= 1;
+  if (state.roundsUntilSpawn > 0) return [];
+  state.roundsUntilSpawn = SPAWN_INTERVAL_ROUNDS;
+
+  const openDoors = state.doors.filter((d) => !pieceAt(state, d));
+  if (openDoors.length === 0) return [];
+
+  const spawned: Coord[] = [];
+  for (let i = 0; i < SPAWN_COUNT_PER_WAVE && openDoors.length > 0; i++) {
+    const idx = Math.floor(Math.random() * openDoors.length);
+    const [door] = openDoors.splice(idx, 1);
+    state.board[door.row][door.col] = makePiece("attacker");
+    spawned.push(door);
+  }
+  return spawned;
 }
 
 export function countTeam(state: GameState, team: Team): number {
@@ -212,8 +227,8 @@ export function adjacentAttackerCount(state: GameState, at: Coord): number {
 
 export function nearestAttackerDistance(state: GameState, at: Coord): number {
   let best = Infinity;
-  for (let row = 0; row < SIZE; row++) {
-    for (let col = 0; col < SIZE; col++) {
+  for (let row = 0; row < state.height; row++) {
+    for (let col = 0; col < state.width; col++) {
       const piece = state.board[row][col];
       if (piece && piece.team === "attacker") {
         const d = Math.abs(row - at.row) + Math.abs(col - at.col);
@@ -224,13 +239,8 @@ export function nearestAttackerDistance(state: GameState, at: Coord): number {
   return best;
 }
 
-export function nearestCornerDistance(at: Coord): number {
-  let best = Infinity;
-  for (const c of CORNERS) {
-    const d = Math.abs(c.row - at.row) + Math.abs(c.col - at.col);
-    if (d < best) best = d;
-  }
-  return best;
+export function exitDistance(state: GameState, at: Coord): number {
+  return Math.abs(state.exit.row - at.row) + Math.abs(state.exit.col - at.col);
 }
 
 export { sameCoord };

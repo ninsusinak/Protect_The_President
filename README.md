@@ -1,17 +1,17 @@
 # Protect the President
 
-Protect the President is a browser game inspired by Hnefatafl (Viking chess). The king is replaced by a president, selectable from a roster of satirical archetypes. Secret Service defenders (played by you) must escort the president to one of the board's escape squares, while AI-controlled protestors try to surround and capture the president first. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
+Protect the President is a browser game inspired by Hnefatafl (Viking chess), reworked into a street-level escort mission. Secret Service defenders (played by you) must get a president — selectable from a roster of satirical archetypes — up the block to a single waiting car, while AI-controlled protestors pour out of the buildings to stop them. The president itself doesn't take orders from anyone — it moves autonomously, with an AI "personality" that mirrors the tone of whichever president you picked.
 
 ### Gameplay Overview
 
-- **Objective:** Get the president to an escape square (defenders win) or surround the president with protestors (attackers win).
-- **Board:** A 7x7 tafl-style board (the compact "Brandub" layout) with a central throne and four corner escape squares.
+- **Objective:** Get the president to the exit at the far end of the street (defenders win) or surround the president with protestors (attackers win).
+- **Board:** A long 9x15 street block. Buildings line both sides; a handful of doors in those buildings are where protestors spawn in from. There is exactly one exit, at the far end from where the motorcade starts.
 - **Roles:**
-  - **Defenders (you):** Secret Service agents. Move one piece per turn.
-  - **Attackers (AI):** Protestors. A simple greedy AI that prioritizes captures and otherwise closes the distance to the president.
+  - **Defenders (you):** A fixed roster of Secret Service agents. Move one piece per turn. Once an agent is taken out, they're gone for the rest of the game — no reinforcements.
+  - **Attackers (AI):** Protestors. Endless supply — every couple of rounds, new protestors spill out of any open building door, for as long as the game runs. A simple greedy AI prioritizes captures and otherwise closes the distance to the president.
   - **The President (AI, autonomous):** Not controlled by either side. Each round it decides on its own whether and where to move, biased by its selected personality (flee danger, wander erratically, walk boldly toward the crowd, or dig in and refuse to budge), with flavor-text quotes logged to the Situation Report panel.
-- **Movement:** Orthogonal sliding moves (like a chess rook), same as classic tafl.
-- **Capture:** Standard tafl sandwich-capture — flank an enemy piece between two of your own (or a hostile throne/corner square) to remove it. The president is captured only once surrounded on all four sides by protestors.
+- **Movement:** Orthogonal sliding moves (like a chess rook), blocked by walls and other pieces.
+- **Capture:** Sandwich-capture — flank an enemy piece between two of your own, or between one of yours and a building wall, to remove it (pinning someone against the buildings works same as pinning them between two agents). The president is captured once every side is either a protestor or a wall.
 
 ### Tech Stack
 
@@ -39,8 +39,8 @@ npm run preview
 src/
   game/
     types.ts        Core types (board, pieces, moves, game state)
-    board.ts         Board geometry (size, throne, corners)
-    rules.ts         Move generation, capture resolution, win conditions
+    board.ts         Street layout: dimensions, walls/doors, exit, starting positions
+    rules.ts         Move generation, capture resolution, protestor spawning, win conditions
     presidents.ts    Selectable president roster: personality + flavor text
     presidentAI.ts   Decides the president's autonomous move each round
     attackerAI.ts    Decides the protestor AI's move each round

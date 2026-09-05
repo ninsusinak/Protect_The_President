@@ -9,11 +9,14 @@
   <body>
     <div id="app">
       <h1>Protect the President</h1>
-      <p class="subtitle">A satirical Hnefatafl-inspired standoff at street level.</p>
+      <p class="subtitle">
+        Escort the President up the block to the waiting car. Protestors pour out of the
+        buildings for as long as it takes — your detail doesn't get reinforcements.
+      </p>
 
       <div class="layout">
         <div class="board-panel">
-          <canvas id="board" width="448" height="448"></canvas>
+          <canvas id="board" width="396" height="660"></canvas>
         </div>
 
         <div class="side-panel">
@@ -39,9 +42,11 @@
           <section class="legend">
             <h2>Legend</h2>
             <ul>
-              <li><span class="swatch defender"></span> Secret Service (you)</li>
-              <li><span class="swatch attacker"></span> Protestors (AI)</li>
+              <li><span class="swatch defender"></span> Secret Service (you) — no reinforcements</li>
+              <li><span class="swatch attacker"></span> Protestors (AI) — endless supply</li>
               <li><span class="swatch president"></span> The President (autonomous)</li>
+              <li><span class="swatch door"></span> Building door — protestors spawn here</li>
+              <li><span class="swatch exit"></span> Exit — get the President here to win</li>
             </ul>
           </section>
         </div>

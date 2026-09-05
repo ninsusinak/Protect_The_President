@@ -1,8 +1,9 @@
-import { CORNERS, SIZE, THRONE } from "./game/board";
+import { HEIGHT, WIDTH } from "./game/board";
 import type { Coord, GameState } from "./game/types";
 
-export const CELL = 64;
-export const BOARD_PX = CELL * SIZE;
+export const CELL = 44;
+export const BOARD_PX_W = CELL * WIDTH;
+export const BOARD_PX_H = CELL * HEIGHT;
 
 function sameCoord(a: Coord, b: Coord): boolean {
   return a.row === b.row && a.col === b.col;
@@ -14,19 +15,21 @@ export interface RenderOptions {
 }
 
 export function renderBoard(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderOptions) {
-  ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
+  ctx.clearRect(0, 0, BOARD_PX_W, BOARD_PX_H);
 
-  for (let row = 0; row < SIZE; row++) {
-    for (let col = 0; col < SIZE; col++) {
+  for (let row = 0; row < state.height; row++) {
+    for (let col = 0; col < state.width; col++) {
       const x = col * CELL;
       const y = row * CELL;
-      const isThroneCell = row === THRONE.row && col === THRONE.col;
-      const isCornerCell = CORNERS.some((c) => c.row === row && c.col === col);
+      const terrain = state.terrain[row][col];
+      const isExit = sameCoord(state.exit, { row, col });
 
-      if (isThroneCell) {
-        ctx.fillStyle = "#3a3f2f";
-      } else if (isCornerCell) {
-        ctx.fillStyle = "#2f3a3f";
+      if (terrain === "wall") {
+        ctx.fillStyle = "#232019";
+      } else if (terrain === "door") {
+        ctx.fillStyle = "#4a3a22";
+      } else if (isExit) {
+        ctx.fillStyle = "#1f4a2f";
       } else {
         ctx.fillStyle = (row + col) % 2 === 0 ? "#5c5c52" : "#525248";
       }
@@ -34,11 +37,22 @@ export function renderBoard(ctx: CanvasRenderingContext2D, state: GameState, opt
       ctx.strokeStyle = "rgba(0,0,0,0.25)";
       ctx.strokeRect(x, y, CELL, CELL);
 
-      if (isCornerCell) {
-        ctx.fillStyle = "rgba(255,255,255,0.65)";
-        ctx.font = "11px system-ui, sans-serif";
+      if (terrain === "wall") {
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + CELL / 2);
+        ctx.lineTo(x + CELL - 4, y + CELL / 2);
+        ctx.stroke();
+      } else if (terrain === "door") {
+        ctx.fillStyle = "rgba(255,221,87,0.8)";
+        ctx.font = "10px system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("ESCAPE", x + CELL / 2, y + CELL / 2 + 4);
+        ctx.fillText("DOOR", x + CELL / 2, y + CELL / 2 + 3);
+      } else if (isExit) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.font = "10px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("EXIT", x + CELL / 2, y + CELL / 2 + 3);
       }
     }
   }
@@ -49,18 +63,18 @@ export function renderBoard(ctx: CanvasRenderingContext2D, state: GameState, opt
       const x = c.col * CELL + CELL / 2;
       const y = c.row * CELL + CELL / 2;
       ctx.beginPath();
-      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  for (let row = 0; row < SIZE; row++) {
-    for (let col = 0; col < SIZE; col++) {
+  for (let row = 0; row < state.height; row++) {
+    for (let col = 0; col < state.width; col++) {
       const piece = state.board[row][col];
       if (!piece) continue;
       const cx = col * CELL + CELL / 2;
       const cy = row * CELL + CELL / 2;
-      const radius = piece.isPresident ? 24 : 20;
+      const radius = piece.isPresident ? 17 : 14;
 
       if (piece.isPresident) {
         ctx.fillStyle = "#d4af37";
@@ -86,7 +100,7 @@ export function renderBoard(ctx: CanvasRenderingContext2D, state: GameState, opt
       }
 
       ctx.fillStyle = "#fff";
-      ctx.font = piece.isPresident ? "20px system-ui, sans-serif" : "16px system-ui, sans-serif";
+      ctx.font = piece.isPresident ? "14px system-ui, sans-serif" : "11px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const glyph = piece.isPresident ? "★" : piece.team === "defender" ? "SS" : "P";

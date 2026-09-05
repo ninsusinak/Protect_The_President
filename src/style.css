@@ -150,3 +150,13 @@ button:hover {
 .swatch.president {
   background: #d4af37;
 }
+
+.swatch.door {
+  background: #4a3a22;
+  border-radius: 2px;
+}
+
+.swatch.exit {
+  background: #1f4a2f;
+  border-radius: 2px;
+}

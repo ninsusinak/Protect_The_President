@@ -9,6 +9,7 @@ import {
   applyMove,
   createInitialState,
   legalMovesFrom,
+  spawnAttackers,
 } from "./game/rules";
 import type { Coord, GameState } from "./game/types";
 
@@ -205,21 +206,24 @@ function runPresidentPhase() {
 
 function runAttackerPhase() {
   const move = decideAttackerMove(state);
-  if (!move) {
-    log("The protestors are boxed in with nowhere to go. Secret Service wins.");
-    state.winner = "defenders";
-    return;
-  }
-
-  const result = applyMove(state, move);
-  if (result.captured.length > 0) {
-    log(`A Secret Service agent is overwhelmed and pulled from the line.`);
+  if (move) {
+    const result = applyMove(state, move);
+    if (result.captured.length > 0) {
+      log("A Secret Service agent is overwhelmed and pulled from the line.");
+    } else {
+      log("The crowd surges forward.");
+    }
+    if (result.presidentCaptured) {
+      log(`${profile.name}: ${pickLine(profile.flavor.captured)}`);
+      return;
+    }
   } else {
-    log("The crowd surges forward.");
+    log("The crowd presses in, boxed in for the moment.");
   }
 
-  if (result.presidentCaptured) {
-    log(`${profile.name}: ${pickLine(profile.flavor.captured)}`);
+  const spawned = spawnAttackers(state);
+  if (spawned.length > 0) {
+    log(`More protestors spill out of a building${spawned.length > 1 ? "s" : ""} down the block.`);
   }
 }
 
