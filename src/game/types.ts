@@ -44,4 +44,8 @@ export interface GameState {
   spawnIntervalRounds: number;
   spawnCountPerWave: number;
   chuckerSpawnChance: number;
+  // Rounds of forced escape-priority behavior remaining, refreshed to 2
+  // whenever an agent is adjacent to the President — see
+  // rules.isPresidentEscorted and presidentAI.decidePresidentMove.
+  presidentEscortBoost: number;
 }

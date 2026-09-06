@@ -11,13 +11,20 @@ export interface PresidentProfile {
   archetype: string;
   tagline: string;
   bias: MovementBias;
-  // 0 = never volunteers a move, 1 = always moves when a move is available.
+  // Baseline (unescorted) willingness to move on its own: 0 = never
+  // volunteers, 1 = always moves when possible. Deliberately kept low
+  // across the roster — the President isn't supposed to make real
+  // progress alone. It's overridden entirely (always moves, no personality)
+  // while escort-boosted; see presidentAI.decidePresidentMove.
   moveEagerness: number;
   flavor: {
     move: string[];
     danger: string[];
     escape: string[];
     captured: string[];
+    // Said the moment an agent gets in close and personality briefly
+    // gives way to actually listening to the detail.
+    escorted: string[];
   };
 }
 
@@ -28,7 +35,7 @@ export const PRESIDENTS: PresidentProfile[] = [
     archetype: "The Showman",
     tagline: "Never met a crowd he didn't walk straight into.",
     bias: "bold",
-    moveEagerness: 0.9,
+    moveEagerness: 0.35,
     flavor: {
       move: [
         "\"Everybody's watching, might as well give them a show!\"",
@@ -45,6 +52,10 @@ export const PRESIDENTS: PresidentProfile[] = [
       captured: [
         "\"This is going to make an incredible memoir chapter.\"",
       ],
+      escorted: [
+        "\"Alright, alright, I hear you,\" Marlowe mutters, finally moving with purpose.",
+        "For once, Marlowe actually listens to the detail.",
+      ],
     },
   },
   {
@@ -53,7 +64,7 @@ export const PRESIDENTS: PresidentProfile[] = [
     archetype: "The Statesman",
     tagline: "Calm, calculating, always three moves ahead.",
     bias: "flee",
-    moveEagerness: 0.8,
+    moveEagerness: 0.5,
     flavor: {
       move: [
         "Voss calmly repositions, eyes already on the exits.",
@@ -70,6 +81,10 @@ export const PRESIDENTS: PresidentProfile[] = [
       captured: [
         "\"Well. That was a miscalculation.\"",
       ],
+      escorted: [
+        "\"Good. Direct pressure, direct response,\" Voss says, picking up the pace.",
+        "Voss falls into step with the agent, all business now.",
+      ],
     },
   },
   {
@@ -78,7 +93,7 @@ export const PRESIDENTS: PresidentProfile[] = [
     archetype: "The Wildcard",
     tagline: "Nobody, least of all Halloway, knows what happens next.",
     bias: "wander",
-    moveEagerness: 0.7,
+    moveEagerness: 0.3,
     flavor: {
       move: [
         "Halloway wanders off mid-sentence.",
@@ -95,6 +110,10 @@ export const PRESIDENTS: PresidentProfile[] = [
       captured: [
         "\"How did THAT happen?\"",
       ],
+      escorted: [
+        "\"Oh, we're doing the fast walk now? Okay, fast walk it is!\"",
+        "Halloway suddenly, briefly, seems to know exactly where he's going.",
+      ],
     },
   },
   {
@@ -103,7 +122,7 @@ export const PRESIDENTS: PresidentProfile[] = [
     archetype: "The Isolationist",
     tagline: "Would very much prefer to stay right here, thanks.",
     bias: "stubborn",
-    moveEagerness: 0.3,
+    moveEagerness: 0.1,
     flavor: {
       move: [
         "Graves grudgingly shuffles a few feet.",
@@ -118,6 +137,10 @@ export const PRESIDENTS: PresidentProfile[] = [
       ],
       captured: [
         "\"I told you people I wanted to stay inside today.\"",
+      ],
+      escorted: [
+        "\"Fine, FINE, I'm moving,\" Graves grumbles, actually moving.",
+        "Graves lets himself be steered, grudgingly.",
       ],
     },
   },

@@ -14,8 +14,10 @@ import {
   performOverwatch,
   piecesInRange,
   reachableTiles,
+  refreshPresidentEscortBoost,
   resetAP,
   spawnAttackers,
+  tickPresidentEscortBoost,
 } from "./game/rules";
 import { statsFor } from "./game/units";
 import type { Coord, GameState, Piece } from "./game/types";
@@ -55,6 +57,7 @@ const menuBtn = document.getElementById("menu-btn") as HTMLButtonElement;
 const activePresidentEl = document.getElementById("active-president") as HTMLParagraphElement;
 const activePresidentTaglineEl = document.getElementById("active-president-tagline") as HTMLParagraphElement;
 const unitInfoEl = document.getElementById("unit-info") as HTMLParagraphElement;
+const escortStatusEl = document.getElementById("escort-status") as HTMLParagraphElement;
 const overwatchBtn = document.getElementById("overwatch-btn") as HTMLButtonElement;
 const endTurnBtn = document.getElementById("end-turn-btn") as HTMLButtonElement;
 const retryBtn = document.getElementById("retry-btn") as HTMLButtonElement;
@@ -331,7 +334,17 @@ function draw() {
   updateStatus();
   updateUnitInfo();
   updateControls();
+  updateEscortStatus();
   persistSnapshot();
+}
+
+function updateEscortStatus() {
+  if (state.presidentEscortBoost > 0) {
+    escortStatusEl.hidden = false;
+    escortStatusEl.textContent = `🏃 Prioritizing escape for ${state.presidentEscortBoost} more round${state.presidentEscortBoost > 1 ? "s" : ""} — keep an agent close to hold it.`;
+  } else {
+    escortStatusEl.hidden = true;
+  }
 }
 
 function updateUnitInfo() {
@@ -455,6 +468,13 @@ function persistSnapshot() {
 
 function runAIPhases() {
   awaitingAI = true;
+
+  const wasEscortBoosted = state.presidentEscortBoost > 0;
+  refreshPresidentEscortBoost(state);
+  if (state.presidentEscortBoost > 0 && !wasEscortBoosted) {
+    log(`${profile.name}: ${pickLine(profile.flavor.escorted)}`);
+  }
+
   draw();
 
   setTimeout(() => {
@@ -463,6 +483,7 @@ function runAIPhases() {
     draw();
 
     runPresidentPhase();
+    tickPresidentEscortBoost(state);
 
     if (state.winner) {
       awaitingAI = false;

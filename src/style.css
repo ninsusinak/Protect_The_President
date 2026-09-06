@@ -204,6 +204,13 @@ button.small {
   font-size: 0.9rem;
 }
 
+.escort-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4fd0e0;
+}
+
 #status {
   margin: 0;
   font-size: 1rem;

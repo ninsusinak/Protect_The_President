@@ -37,6 +37,7 @@ export function createInitialState(level: Level): GameState {
     spawnIntervalRounds: level.spawnIntervalRounds,
     spawnCountPerWave: level.spawnCountPerWave,
     chuckerSpawnChance: level.chuckerSpawnChance,
+    presidentEscortBoost: 0,
   };
 }
 
@@ -363,6 +364,39 @@ export function nearestAttackerDistance(state: GameState, at: Coord): number {
 
 export function exitDistance(state: GameState, at: Coord): number {
   return Math.abs(state.exit.row - at.row) + Math.abs(state.exit.col - at.col);
+}
+
+export function nearestAgentDistance(state: GameState, at: Coord): number {
+  let best = Infinity;
+  for (const { piece, coord } of allPiecesOfTeam(state, "defender")) {
+    if (piece.kind !== "agent") continue;
+    const d = manhattan(at, coord);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+export const ESCORT_BOOST_ROUNDS = 2;
+
+// True while at least one agent is standing right next to the President.
+export function isPresidentEscorted(state: GameState): boolean {
+  return piecesInRange(state, state.presidentPos, 1, { team: "defender" }).some(
+    ({ piece }) => piece.kind === "agent",
+  );
+}
+
+// Call once per round, after the player's moves are locked in: keeping an
+// agent glued to the President refreshes the boost back to full; letting it
+// lapse just lets the existing countdown continue (handled by
+// tickPresidentEscortBoost, called once the President's own move resolves).
+export function refreshPresidentEscortBoost(state: GameState): void {
+  if (isPresidentEscorted(state)) {
+    state.presidentEscortBoost = ESCORT_BOOST_ROUNDS;
+  }
+}
+
+export function tickPresidentEscortBoost(state: GameState): void {
+  state.presidentEscortBoost = Math.max(0, state.presidentEscortBoost - 1);
 }
 
 export { manhattan, sameCoord };
